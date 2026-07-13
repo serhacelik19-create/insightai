@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+pydantic
+python-dotenv
+pandas
+openpyxl
+google-generativeai
+python-multipart
+pyjwt
+bcrypt
+email-validator
