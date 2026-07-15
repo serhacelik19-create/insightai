@@ -1,4 +1,4 @@
-# 📊 InsightAI — AI-Powered Financial Co-Pilot for SMEs
+# InsightAI — AI Financial Co-Pilot for SMEs
 
 <p align="center">
   <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" />
@@ -9,60 +9,59 @@
   <img src="https://img.shields.io/badge/OpenRouter-8A2BE2?style=for-the-badge&logo=google-gemini&logoColor=white" alt="OpenRouter" />
 </p>
 
-InsightAI is a secure, clean-coded, and modern web application designed for small and medium-sized enterprises (SMEs) to import financial records, simulate operational scenarios, track key performance metrics, and receive context-aware optimization strategies from a personal **AI Financial Co-Pilot**.
+A web application for small and medium-sized businesses to import financial records, simulate operational scenarios, track key metrics, and get context-aware optimization strategies from an AI co-pilot.
 
-Built using **FastAPI** (Python) and **React** (Vite), this project follows strict industry-standard security principles and modular design patterns (Separation of Concerns).
-
----
-
-## ✨ Features at a Glance
-
-*   **📈 Dynamic Financial Analytics:** Interactive, multi-period line and bar charts tracking Revenue, Expenses, and Profit margin trends.
-*   **🤖 Context-Aware AI Co-Pilot:** Chat with `InsightAI` about your business performance. The AI directly accesses your financials, personnel costs, and menu data to suggest strategies.
-*   **📋 Integrated Action Board:** Save suggested AI strategies directly to an interactive Kanban Board (To-Do, In-Progress, Completed) with automatic financial impact tracking.
-*   **📥 Column-Mapping statement Importer:** Upload Excel or CSV financial statements with a smart mapping interface to align custom file columns to database fields.
-*   **🍽️ Menu Engineering (Restaurants):** Track portion cost vs. sale price to flag low-margin items.
-*   **👥 Personnel Efficiency Tracker:** Monitor base salaries, overtime hours, and overtime rates.
-*   **🔮 Scenario Simulator:** Simulate business decisions (e.g., price modifications, marketing boosts, salary changes) and instantly preview predicted financial changes.
+Built with **FastAPI** (Python) and **React** (Vite), following strict separation of concerns across all layers.
 
 ---
 
-## 🔒 Security Hardening
+## Features
 
-InsightAI is designed with **zero-compromise security constraints**:
-*   **XSS Protection:** JWT authentication tokens are written to `HttpOnly`, `SameSite=Lax`, and `Secure` client cookies. JavaScript cannot access or hijack the session.
-*   **Data Isolation (Multi-Tenancy):** Database queries are strictly parameterized and user-filtered. Under no circumstances can a user query another business's financials.
-*   **Brute-Force Prevention:** IP-based Rate Limiting middleware guards authentication endpoints.
-*   **SQL Injection Defense:** Zero dynamic string concatenation in queries. Parametric SQLite operations are isolated in repository layers.
+- **Financial Analytics:** Multi-period line and bar charts tracking revenue, expenses, and profit trends.
+- **AI Co-Pilot:** Conversational interface where the AI accesses your financial data, personnel costs, and menu items to suggest actionable strategies.
+- **Action Board:** Save AI-suggested strategies to a Kanban board (To-Do → In Progress → Completed) with financial impact tracking.
+- **Statement Importer:** Upload Excel/CSV files with a column-mapping interface to align custom file formats to database fields.
+- **Menu Engineering:** Track portion cost vs. sale price to identify low-margin items (restaurant-focused).
+- **Personnel Tracker:** Monitor base salaries, overtime hours, and overtime rates.
+- **Scenario Simulator:** Model business decisions (price changes, marketing budget increases, salary adjustments) and preview predicted financial impact.
 
 ---
 
-## 🛠️ Codebase Architecture
+## Security
 
-The project strictly follows the **Separation of Concerns (SoC)** design pattern, keeping layers clean and decoupled.
+| Measure | Implementation |
+|---------|---------------|
+| Session hijacking prevention | JWT tokens stored in `HttpOnly`, `SameSite=Lax`, `Secure` cookies — inaccessible to JavaScript |
+| Data isolation | All queries are parameterized and filtered by authenticated user — no cross-tenant data access |
+| Brute-force protection | IP-based rate limiting on authentication endpoints |
+| SQL injection defense | Parameterized SQLite queries in isolated repository layers — no string concatenation |
+
+---
+
+## Architecture
 
 ```
-├── backend/                  # FastAPI Application
-│   ├── config.py             # Centralized settings & Pydantic configurations
-│   ├── database.py           # DB Schema & Connection factory
-│   ├── security.py           # JWT encryption, hashing & auth dependencies
-│   ├── schemas/              # Pydantic Request/Response validation models
-│   ├── repositories/         # Isolated DB querying logic (Decoupled SQL)
-│   ├── services/             # Core business logic & AI API connectors
-│   └── routers/              # HTTP Route controllers (API Gateways)
+├── backend/
+│   ├── config.py             # Centralized Pydantic settings
+│   ├── database.py           # Schema & connection factory
+│   ├── security.py           # JWT, hashing, auth dependencies
+│   ├── schemas/              # Pydantic request/response models
+│   ├── repositories/         # Database query layer (isolated SQL)
+│   ├── services/             # Business logic & AI API connectors
+│   └── routers/              # HTTP route controllers
 │
-└── frontend/                 # React Application (Vite)
-    ├── src/
-    │   ├── context/          # Global state (Auth & UI themes)
-    │   ├── services/         # Centralized API clients with session cookies
-    │   └── components/       # Premium widgets & layout pages
+└── frontend/
+    └── src/
+        ├── context/          # Auth & theme state
+        ├── services/         # API clients with session cookies
+        └── components/       # UI widgets & page layouts
 ```
 
 ---
 
-## 🚀 Setup & Local Development
+## Setup
 
-### 1. Backend Installation
+### Backend
 ```bash
 cd backend
 python3 -m venv venv
@@ -70,43 +69,45 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Create a `.env` file inside the `backend/` directory:
+Create `backend/.env`:
 ```env
 SECRET_KEY=generate_your_random_secret_key
 ALGORITHM=HS256
 DB_PATH=database.db
-# Primary AI Provider (Gemma-4 via OpenRouter)
 OPENROUTER_API_KEY=your_openrouter_api_key
 OPENROUTER_MODEL=google/gemma-4-26b-a4b-it
 ```
 
-Run the backend server:
 ```bash
 PYTHONPATH=. python main.py
 ```
 
-### 2. Seed Demo Data (Highly Recommended)
-To populate the database with a 12-month historical restaurant statement, personnel overtimes, and menu assets:
+### Seed Demo Data
 ```bash
 PYTHONPATH=. python seed_db.py
 ```
-*   **Demo Username:** `demo@insightai.com`
-*   **Demo Password:** `demo123`
+- **Demo login:** `demo@insightai.com` / `demo123`
 
-### 3. Frontend Installation
+### Frontend
 ```bash
-cd ../frontend
+cd frontend
 npm install
 npm run dev
 ```
-Open [http://localhost:5173/](http://localhost:5173/) on your browser.
+Open [http://localhost:5173](http://localhost:5173)
 
 ---
 
-## 🧪 Running Automated Tests
+## Tests
 
-Run the integration suite (validating JWT cookies, rate limit blocks, and multi-tenant database isolation):
+Run integration tests covering JWT cookie handling, rate limiting, and multi-tenant data isolation:
 
 ```bash
 PYTHONPATH=. backend/venv/bin/python backend/test_api.py
 ```
+
+---
+
+## License
+
+MIT
