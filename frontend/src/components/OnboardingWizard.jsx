@@ -3,25 +3,29 @@ import { Sparkles, ArrowRight, ArrowLeft, X, Check } from 'lucide-react';
 
 const formatCurrency = (value) => `${Number(value || 0).toLocaleString('tr-TR')} ₺`;
 
-function OnboardingWizard({ isOpen, onClose }) {
+function OnboardingWizard({ isOpen = true, onClose, onComplete }) {
+  const handleClose = () => {
+    if (onComplete) onComplete();
+    if (onClose) onClose();
+  };
   const [currentStep, setCurrentStep] = useState(0);
 
   if (!isOpen) return null;
 
   const steps = [
     {
-      title: "InsightAI'a Hoş Geldiniz!",
-      description: "AI destekli kurumsal finansal analiz platformumuz ile işletmenizin finansal sağlığını en ince detayına kadar analiz edebilir ve yapay zeka destekli akıllı kararlarla büyümenizi hızlandırabilirsiniz.",
+      title: "Welcome to InsightAI!",
+      description: "Accelerate your business growth with AI-driven corporate financial analytics, context-aware scenario testing, and automated optimization strategies.",
       icon: <Sparkles size={48} style={{ color: 'var(--color-primary)' }} />
     },
     {
-      title: "Verilerinizi Yükleyin veya Girin",
-      description: "Performansınızı ölçümleyebilmemiz için aylık gelir-gider tablolarınızı veya ürün satış detaylarınızı Excel/CSV formatında yükleyebilir ya da manuel olarak veri giriş ekranımızdan sisteme işleyebilirsiniz.",
+      title: "Import Your Data",
+      description: "Upload monthly revenue/expense statements in Excel/CSV format or manually enter records to monitor your financial health in real-time.",
       icon: <span style={{ fontSize: '3rem' }}>📊</span>
     },
     {
-      title: "Keşfetmeye Hazırsınız!",
-      description: "Artık platformun tüm özelliklerini keşfetmeye hazırsınız. Yapay zeka asistanımızla konuşabilir, What-If senaryolarını test edebilir veya aksiyonlarınızı Kanban board üzerinden adım adım takip edebilirsiniz.",
+      title: "Ready to Explore!",
+      description: "You are all set! Chat with your personal AI Co-Pilot, simulate What-If scenarios, and track your optimization tasks on the Action Board.",
       icon: <Check size={48} style={{ color: 'var(--color-success)' }} />
     }
   ];
@@ -30,7 +34,7 @@ function OnboardingWizard({ isOpen, onClose }) {
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
-      onClose();
+      if (onComplete) onComplete();
     }
   };
 
@@ -72,9 +76,9 @@ function OnboardingWizard({ isOpen, onClose }) {
         gap: '1.5rem'
       }}>
         <button 
-          onClick={onClose} 
+          onClick={onComplete} 
           style={{ position: 'absolute', top: '1rem', right: '1rem', border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}
-          title="Kapat / Geç"
+          title="Skip"
         >
           <X size={20} />
         </button>
@@ -139,15 +143,15 @@ function OnboardingWizard({ isOpen, onClose }) {
               onClick={handlePrev}
               style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.6rem 1.25rem' }}
             >
-              <ArrowLeft size={16} /> Geri
+              <ArrowLeft size={16} /> Back
             </button>
           ) : (
             <button 
               className="btn" 
-              onClick={onClose}
+              onClick={onComplete}
               style={{ padding: '0.6rem 1.25rem', color: 'var(--text-secondary)' }}
             >
-              Atla
+              Skip
             </button>
           )}
 
@@ -157,9 +161,9 @@ function OnboardingWizard({ isOpen, onClose }) {
             style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.6rem 1.5rem', marginLeft: 'auto' }}
           >
             {currentStep === steps.length - 1 ? (
-              <>Başla</>
+              <>Get Started</>
             ) : (
-              <>İleri <ArrowRight size={16} /></>
+              <>Next <ArrowRight size={16} /></>
             )}
           </button>
         </div>

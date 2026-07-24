@@ -1,4 +1,6 @@
 import json
+import asyncio
+import logging
 from fastapi import APIRouter, Depends, HTTPException
 from backend.database import get_db_connection
 from backend.security import get_current_user
@@ -11,6 +13,7 @@ from backend.repositories.personnel import get_personnel
 from backend.repositories.menu import get_menu
 from backend.repositories.chat import get_chat_history, insert_chat_message, clear_chat_history
 
+logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Analytics"])
 
 BENCHMARK_DATA = {
@@ -80,7 +83,7 @@ async def chat_with_ai(request: ChatRequest, current_user: dict = Depends(get_cu
                 messages.append({"role": role, "content": r["content"]})
             messages.append({"role": "user", "content": request.message})
             
-            reply = call_openrouter(messages)
+            reply = await asyncio.to_thread(call_openrouter, messages)
         else:
             contents = [{"role": "user", "parts": [system_context]}]
             for r in history_rows:
@@ -89,14 +92,15 @@ async def chat_with_ai(request: ChatRequest, current_user: dict = Depends(get_cu
                 
             contents.append({"role": "user", "parts": [request.message]})
             
-            reply = call_gemini(contents)
+            reply = await asyncio.to_thread(call_gemini, contents)
             
         insert_chat_message(current_user["id"], "user", request.message, conn)
         insert_chat_message(current_user["id"], "model", reply, conn)
         conn.commit()
         return {"reply": reply}
     except Exception as e:
-        return {"reply": f"Sorry, an error occurred while generating a response: {str(e)}"}
+        logger.error("Error in chat_with_ai endpoint: %s", e, exc_info=True)
+        return {"reply": "Sorry, an error occurred while processing your request. Please try again later."}
     finally:
         conn.close()
 

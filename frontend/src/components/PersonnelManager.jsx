@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Users, Clock, DollarSign, UserCheck, AlertCircle, Loader2 } from 'lucide-react';
+import { api } from '../services/api';
 
-const formatCurrency = (value) => `${Number(value || 0).toLocaleString('tr-TR')} ₺`;
+const formatCurrency = (value) => `$${Number(value || 0).toLocaleString('en-US')}`;
 
-function PersonnelManager({ token, apiBase }) {
-  const API_BASE = apiBase || import.meta.env.VITE_API_BASE || 'http://localhost:8000';
-  const userToken = token || localStorage.getItem('token') || '';
-
+function PersonnelManager({ onDataChange }) {
   const [personnelList, setPersonnelList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
@@ -17,53 +15,40 @@ function PersonnelManager({ token, apiBase }) {
   const [form, setForm] = useState({
     name: '',
     surname: '',
-    role: 'Garson',
+    role: 'Waiter',
     monthly_salary: '',
     overtime_rate: '',
     overtime_hours: ''
   });
 
   const roles = [
-    { value: 'Yönetici', label: 'Yönetici' },
-    { value: 'Şef', label: 'Şef' },
-    { value: 'Garson', label: 'Garson' },
-    { value: 'Kurye', label: 'Kurye' },
-    { value: 'Bulaşıkçı', label: 'Bulaşıkçı' },
-    { value: 'Kasiyer', label: 'Kasiyer' },
+    { value: 'Manager', label: 'Manager' },
+    { value: 'Chef', label: 'Chef' },
+    { value: 'Waiter', label: 'Waiter' },
+    { value: 'Courier', label: 'Courier' },
+    { value: 'Dishwasher', label: 'Dishwasher' },
+    { value: 'Cashier', label: 'Cashier' },
     { value: 'Barista', label: 'Barista' },
-    { value: 'Diğer', label: 'Diğer' }
+    { value: 'Other', label: 'Other' }
   ];
 
   const fetchPersonnel = async () => {
-    if (!userToken) return;
     setLoading(true);
     setError('');
     try {
-      const response = await fetch(`${API_BASE}/api/personnel`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${userToken}`,
-          'Accept': 'application/json'
-        }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        if (Array.isArray(data)) {
-          setPersonnelList(data);
-        } else if (data && Array.isArray(data.personnel)) {
-          setPersonnelList(data.personnel);
-        } else if (data && Array.isArray(data.data)) {
-          setPersonnelList(data.data);
-        } else {
-          setPersonnelList([]);
-        }
+      const data = await api.getPersonnel();
+      if (Array.isArray(data)) {
+        setPersonnelList(data);
+      } else if (data && Array.isArray(data.personnel)) {
+        setPersonnelList(data.personnel);
+      } else if (data && Array.isArray(data.data)) {
+        setPersonnelList(data.data);
       } else {
-        const errData = await response.json().catch(() => ({}));
-        setError(errData.detail || 'Personel verileri yüklenirken bir hata oluştu.');
+        setPersonnelList([]);
       }
     } catch (err) {
       console.error('Personnel fetch error:', err);
-      setError('Sunucu bağlantı hatası oluştu. Lütfen daha sonra tekrar deneyin.');
+      setError(err.message || 'Error loading personnel data.');
     } finally {
       setLoading(false);
     }
@@ -71,7 +56,7 @@ function PersonnelManager({ token, apiBase }) {
 
   useEffect(() => {
     fetchPersonnel();
-  }, [API_BASE, userToken]);
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -84,7 +69,7 @@ function PersonnelManager({ token, apiBase }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name || !form.surname || !form.monthly_salary) {
-      setError('Lütfen zorunlu alanları doldurun.');
+      setError('Please fill in required fields (Name, Surname, Monthly Salary).');
       return;
     }
 
@@ -102,63 +87,41 @@ function PersonnelManager({ token, apiBase }) {
     };
 
     try {
-      const response = await fetch(`${API_BASE}/api/personnel`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${userToken}`
-        },
-        body: JSON.stringify(payload)
+      await api.createPersonnel(payload);
+      setSuccess('Personnel added successfully.');
+      setForm({
+        name: '',
+        surname: '',
+        role: 'Waiter',
+        monthly_salary: '',
+        overtime_rate: '',
+        overtime_hours: ''
       });
-
-      if (response.ok) {
-        setSuccess('Personel başarıyla eklendi.');
-        setForm({
-          name: '',
-          surname: '',
-          role: 'Garson',
-          monthly_salary: '',
-          overtime_rate: '',
-          overtime_hours: ''
-        });
-        fetchPersonnel();
-        setTimeout(() => setSuccess(''), 3000);
-      } else {
-        const errData = await response.json().catch(() => ({}));
-        setError(errData.detail || 'Personel kaydedilirken bir hata oluştu.');
-      }
+      fetchPersonnel();
+      if (onDataChange) onDataChange();
+      setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       console.error('Personnel post error:', err);
-      setError('Sunucu bağlantı hatası oluştu. Personel eklenemedi.');
+      setError(err.message || 'Error creating personnel record.');
     } finally {
       setSubmitLoading(false);
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Bu personeli silmek istediğinize emin misiniz?')) return;
+    if (!window.confirm('Are you sure you want to delete this personnel member?')) return;
 
     setError('');
     setSuccess('');
     try {
-      const response = await fetch(`${API_BASE}/api/personnel/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${userToken}`
-        }
-      });
-
-      if (response.ok) {
-        setSuccess('Personel başarıyla silindi.');
-        fetchPersonnel();
-        setTimeout(() => setSuccess(''), 3000);
-      } else {
-        const errData = await response.json().catch(() => ({}));
-        setError(errData.detail || 'Personel silinirken bir hata oluştu.');
-      }
+      await api.deletePersonnel(id);
+      setSuccess('Personnel deleted successfully.');
+      fetchPersonnel();
+      if (onDataChange) onDataChange();
+      setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       console.error('Personnel delete error:', err);
-      setError('Sunucu bağlantı hatası oluştu. Personel silinemedi.');
+      setError(err.message || 'Error deleting personnel record.');
     }
   };
 

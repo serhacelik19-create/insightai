@@ -303,16 +303,14 @@ function AppContent() {
 
         {activeTab === 'menu' && user.businessType === 'restaurant' && (
           <MenuManager 
-            token={token}
-            apiBase={API_BASE}
             businessType={user.businessType}
+            onDataChange={() => { fetchData(); triggerAnalysis(true); }}
           />
         )}
 
         {activeTab === 'personnel' && (
           <PersonnelManager 
-            token={token}
-            apiBase={API_BASE}
+            onDataChange={() => { fetchData(); triggerAnalysis(true); }}
           />
         )}
 

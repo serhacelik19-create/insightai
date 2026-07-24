@@ -1,33 +1,32 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Sparkles, X, Send, Plus } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import { api } from '../services/api';
 
-function ChatBot({ isOpen, onClose, token, apiBase, messages = [], setMessages, financialRecords = [] }) {
+function ChatBot({ isOpen, onClose, messages = [], setMessages, financialRecords = [] }) {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const chatEndRef = useRef(null);
 
-  // Fetch chat history from database when chat opens or token changes
+  // Fetch chat history from database when chat opens
   useEffect(() => {
-    if (isOpen && token) {
+    if (isOpen) {
       const fetchHistory = async () => {
         try {
-          const res = await fetch(`${apiBase}/api/chat/history`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          if (res.ok) {
-            const history = await res.json();
-            if (history && history.length > 0) {
-              setMessages(history);
-            }
+          const history = await api.getChatHistory();
+          if (history && history.length > 0) {
+            setMessages(history.map(item => ({
+              role: item.role === 'user' ? 'user' : 'ai',
+              content: item.content
+            })));
           }
         } catch (err) {
-          console.warn("Sohbet geçmişi yüklenemedi.", err);
+          console.warn("Failed to load chat history.", err);
         }
       };
       fetchHistory();
     }
-  }, [isOpen, token, apiBase]);
+  }, [isOpen, setMessages]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -41,21 +40,8 @@ function ChatBot({ isOpen, onClose, token, apiBase, messages = [], setMessages, 
     setInput('');
 
     try {
-      const res = await fetch(`${apiBase}/api/chat`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ message: text }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setMessages(prev => [...prev, { role: 'ai', content: data.reply }]);
-      } else {
-        handleFallbackResponse(text);
-      }
+      const data = await api.sendChatMessage(text);
+      setMessages(prev => [...prev, { role: 'ai', content: data.reply }]);
     } catch (err) {
       handleFallbackResponse(text);
     } finally {

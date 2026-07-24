@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
 import { Play, TrendingUp, TrendingDown } from 'lucide-react';
+import { api } from '../services/api';
 
-const formatCurrency = (value) => `${Number(value || 0).toLocaleString('tr-TR')} ₺`;
+const formatCurrency = (value) => `$${Number(value || 0).toLocaleString('en-US')}`;
 
-function ScenarioAnalysis({ financialRecords, topProducts, token, apiBase }) {
-  const API_BASE = apiBase || import.meta.env.VITE_API_BASE || 'http://localhost:8000';
-  const userToken = token || localStorage.getItem('token') || '';
-
+function ScenarioAnalysis({ financialRecords, topProducts }) {
   const [scenarioType, setScenarioType] = useState('expense_reduction');
   const [value, setValue] = useState('10');
   const [selectedProduct, setSelectedProduct] = useState('');
@@ -19,7 +17,7 @@ function ScenarioAnalysis({ financialRecords, topProducts, token, apiBase }) {
   if (!hasData) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '200px', color: 'var(--text-secondary)' }}>
-        Senaryo analizi için finansal veri bulunamadı.
+        No financial data available for scenario analysis.
       </div>
     );
   }
@@ -31,7 +29,6 @@ function ScenarioAnalysis({ financialRecords, topProducts, token, apiBase }) {
     setLoading(true);
     setResult(null);
 
-    // Build the ScenarioRequest structure
     let params = {};
     if (scenarioType === 'expense_reduction') {
       params = {
@@ -51,7 +48,7 @@ function ScenarioAnalysis({ financialRecords, topProducts, token, apiBase }) {
         percent: Number(value),
         value: Number(value),
         price_change_percent: Number(value),
-        product_name: '' // General
+        product_name: ''
       };
     } else if (scenarioType === 'product_removal') {
       params = {
@@ -65,19 +62,11 @@ function ScenarioAnalysis({ financialRecords, topProducts, token, apiBase }) {
     let apiData = null;
 
     try {
-      const res = await fetch(`${API_BASE}/api/scenario`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${userToken}`
-        },
-        body: JSON.stringify({
-          scenario_type: scenarioType,
-          params: params
-        })
+      const rawData = await api.createScenario({
+        scenario_type: scenarioType,
+        params: params
       });
-      if (res.ok) {
-        const rawData = await res.json();
+      if (rawData && rawData.current) {
         apiData = {
           current: {
             revenue: rawData.current.total_revenue,

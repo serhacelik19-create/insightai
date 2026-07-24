@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Utensils, Percent, DollarSign, AlertTriangle, Lock, CheckCircle, Loader2 } from 'lucide-react';
+import { api } from '../services/api';
 
-const formatCurrency = (value) => `${Number(value || 0).toLocaleString('tr-TR')} ₺`;
+const formatCurrency = (value) => `$${Number(value || 0).toLocaleString('en-US')}`;
 
-function MenuManager({ token, apiBase, businessType }) {
-  const API_BASE = apiBase || import.meta.env.VITE_API_BASE || 'http://localhost:8000';
-  const userToken = token || localStorage.getItem('token') || '';
-
+function MenuManager({ businessType, onDataChange }) {
   const [menuList, setMenuList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
@@ -16,48 +14,36 @@ function MenuManager({ token, apiBase, businessType }) {
   // Form State
   const [form, setForm] = useState({
     item_name: '',
-    category: 'Ana Yemek',
+    category: 'Main Course',
     sale_price: '',
     portion_cost: ''
   });
 
   const categories = [
-    { value: 'Ana Yemek', label: 'Ana Yemek' },
-    { value: 'Aperatif', label: 'Aperatif' },
-    { value: 'İçecek', label: 'İçecek' },
-    { value: 'Tatlı', label: 'Tatlı' }
+    { value: 'Main Course', label: 'Main Course' },
+    { value: 'Appetizer', label: 'Appetizer' },
+    { value: 'Beverage', label: 'Beverage' },
+    { value: 'Dessert', label: 'Dessert' }
   ];
 
   const fetchMenu = async () => {
-    if (!userToken || businessType !== 'restaurant') return;
+    if (businessType !== 'restaurant') return;
     setLoading(true);
     setError('');
     try {
-      const response = await fetch(`${API_BASE}/api/menu`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${userToken}`,
-          'Accept': 'application/json'
-        }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        if (Array.isArray(data)) {
-          setMenuList(data);
-        } else if (data && Array.isArray(data.menu)) {
-          setMenuList(data.menu);
-        } else if (data && Array.isArray(data.data)) {
-          setMenuList(data.data);
-        } else {
-          setMenuList([]);
-        }
+      const data = await api.getMenu();
+      if (Array.isArray(data)) {
+        setMenuList(data);
+      } else if (data && Array.isArray(data.menu)) {
+        setMenuList(data.menu);
+      } else if (data && Array.isArray(data.data)) {
+        setMenuList(data.data);
       } else {
-        const errData = await response.json().catch(() => ({}));
-        setError(errData.detail || 'Menü verileri yüklenirken bir hata oluştu.');
+        setMenuList([]);
       }
     } catch (err) {
       console.error('Menu fetch error:', err);
-      setError('Sunucu bağlantı hatası oluştu. Lütfen daha sonra tekrar deneyin.');
+      setError(err.message || 'Error loading menu data.');
     } finally {
       setLoading(false);
     }
@@ -65,7 +51,7 @@ function MenuManager({ token, apiBase, businessType }) {
 
   useEffect(() => {
     fetchMenu();
-  }, [API_BASE, userToken, businessType]);
+  }, [businessType]);
 
   // Sector Check (Only active for Restaurant & Cafe)
   if (businessType !== 'restaurant') {
@@ -75,11 +61,11 @@ function MenuManager({ token, apiBase, businessType }) {
           <Lock size={36} />
         </div>
         <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.75rem' }}>
-          Menü ve Maliyet Analiz Paneli Kilitli
+          Menu & Cost Analysis Locked
         </h3>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: '1.6', marginBottom: '1.5rem' }}>
-          Bu panel yalnızca <strong>Restoran & Kafe</strong> sektöründeki işletmeler için aktiftir. 
-          Kullanmak için işletme profil ayarlarına gidip işletme türünüzü güncelleyebilirsiniz.
+          This panel is active only for <strong>Restaurant & Cafe</strong> businesses. 
+          To enable it, update your business type in Profile Settings.
         </p>
       </div>
     );
@@ -96,7 +82,7 @@ function MenuManager({ token, apiBase, businessType }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.item_name || !form.sale_price || !form.portion_cost) {
-      setError('Lütfen tüm zorunlu alanları doldurun.');
+      setError('Please fill in all required fields.');
       return;
     }
 
@@ -112,61 +98,39 @@ function MenuManager({ token, apiBase, businessType }) {
     };
 
     try {
-      const response = await fetch(`${API_BASE}/api/menu`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${userToken}`
-        },
-        body: JSON.stringify(payload)
+      await api.createMenu(payload);
+      setSuccess('Menu item added successfully.');
+      setForm({
+        item_name: '',
+        category: 'Main Course',
+        sale_price: '',
+        portion_cost: ''
       });
-
-      if (response.ok) {
-        setSuccess('Menü öğesi başarıyla eklendi.');
-        setForm({
-          item_name: '',
-          category: 'Ana Yemek',
-          sale_price: '',
-          portion_cost: ''
-        });
-        fetchMenu();
-        setTimeout(() => setSuccess(''), 3000);
-      } else {
-        const errData = await response.json().catch(() => ({}));
-        setError(errData.detail || 'Menü öğesi kaydedilirken bir hata oluştu.');
-      }
+      fetchMenu();
+      if (onDataChange) onDataChange();
+      setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       console.error('Menu post error:', err);
-      setError('Sunucu bağlantı hatası oluştu. Öğe eklenemedi.');
+      setError(err.message || 'Error creating menu item.');
     } finally {
       setSubmitLoading(false);
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Bu menü öğesini silmek istediğinize emin misiniz?')) return;
+    if (!window.confirm('Are you sure you want to delete this menu item?')) return;
 
     setError('');
     setSuccess('');
     try {
-      const response = await fetch(`${API_BASE}/api/menu/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${userToken}`
-        }
-      });
-
-      if (response.ok) {
-        setSuccess('Menü öğesi başarıyla silindi.');
-        fetchMenu();
-        setTimeout(() => setSuccess(''), 3000);
-      } else {
-        const errData = await response.json().catch(() => ({}));
-        setError(errData.detail || 'Menü öğesi silinirken bir hata oluştu.');
-      }
+      await api.deleteMenu(id);
+      setSuccess('Menu item deleted successfully.');
+      fetchMenu();
+      if (onDataChange) onDataChange();
+      setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       console.error('Menu delete error:', err);
-      setError('Sunucu bağlantı hatası oluştu. Öğe silinemedi.');
+      setError(err.message || 'Error deleting menu item.');
     }
   };
 

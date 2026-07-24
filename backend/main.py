@@ -4,6 +4,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi.middleware.cors import CORSMiddleware
+from backend.config import settings
 from backend.database import init_db
 from backend.routers.auth import router as auth_router
 from backend.routers.profiles import router as profiles_router
@@ -27,7 +28,12 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if request.url.path == "/api/auth/login" and request.method == "POST":
             client_ip = request.client.host if request.client else "unknown"
             now = time.time()
-            # Filter older timestamps
+            
+            # Periodically sweep stale IPs to prevent unbounded memory growth
+            stale_ips = [ip for ip, timestamps in login_rate_limit_store.items() if not [t for t in timestamps if now - t < 60]]
+            for ip in stale_ips:
+                del login_rate_limit_store[ip]
+
             login_rate_limit_store[client_ip] = [t for t in login_rate_limit_store[client_ip] if now - t < 60]
             if len(login_rate_limit_store[client_ip]) >= 10:
                 return JSONResponse(
@@ -42,7 +48,7 @@ app.add_middleware(RateLimitMiddleware)
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

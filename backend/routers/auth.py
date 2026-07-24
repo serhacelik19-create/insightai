@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends, Response
+from backend.config import settings
 from backend.database import get_db_connection
 from backend.schemas.auth import UserRegister, UserLogin
 from backend.security import hash_password, verify_password, create_access_token, get_current_user
@@ -38,8 +39,8 @@ def login(user_in: UserLogin, response: Response):
         key="access_token",
         value=token,
         httponly=True,
-        secure=False,
-        samesite="lax"
+        secure=settings.COOKIE_SECURE,
+        samesite=settings.COOKIE_SAMESITE
     )
     return {
         "status": "success",
