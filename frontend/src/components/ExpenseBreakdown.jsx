@@ -1,7 +1,7 @@
 import React from 'react';
 import { ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
-const formatCurrency = (value) => `${Number(value || 0).toLocaleString('tr-TR')} ₺`;
+const formatCurrency = (value) => `$${Number(value || 0).toLocaleString('en-US')}`;
 
 function ExpenseBreakdown({ financialRecords }) {
   const hasData = financialRecords && financialRecords.length > 0;
@@ -9,7 +9,7 @@ function ExpenseBreakdown({ financialRecords }) {
   if (!hasData) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '200px', color: 'var(--text-secondary)' }}>
-        Gider kırılımı verisi bulunamadı.
+        No expense breakdown data found.
       </div>
     );
   }
@@ -17,11 +17,11 @@ function ExpenseBreakdown({ financialRecords }) {
   const latestRecord = financialRecords[financialRecords.length - 1];
   
   const categories = [
-    { name: 'Kira Giderleri', key: 'rent_expense', color: '#3B82F6' },
-    { name: 'Personel Giderleri', key: 'personnel_expense', color: '#10B981' },
-    { name: 'Pazarlama Giderleri', key: 'marketing_expense', color: '#F59E0B' },
-    { name: 'Malzeme Giderleri', key: 'material_expense', color: '#EF4444' },
-    { name: 'Diğer Giderler', key: 'other_expense', color: '#8B5CF6' }
+    { name: 'Rent Expenses', key: 'rent_expense', color: '#3B82F6' },
+    { name: 'Personnel Expenses', key: 'personnel_expense', color: '#10B981' },
+    { name: 'Marketing Expenses', key: 'marketing_expense', color: '#F59E0B' },
+    { name: 'Material Expenses', key: 'material_expense', color: '#EF4444' },
+    { name: 'Other Expenses', key: 'other_expense', color: '#8B5CF6' }
   ];
 
   const data = categories.map(cat => ({
@@ -35,7 +35,7 @@ function ExpenseBreakdown({ financialRecords }) {
   if (totalExpense === 0) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '200px', color: 'var(--text-secondary)' }}>
-        Bu döneme ait gider kırılımı verisi sıfır.
+        The expense breakdown data for this period is zero.
       </div>
     );
   }
@@ -68,7 +68,7 @@ function ExpenseBreakdown({ financialRecords }) {
           textAlign: 'center',
           pointerEvents: 'none'
         }}>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Toplam</div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total</div>
           <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>
             {formatCurrency(totalExpense)}
           </div>

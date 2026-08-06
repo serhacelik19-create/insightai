@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useOutletContext } from 'react-router-dom';
+import { useDeferredRender } from '../hooks/useDeferredRender';
 import { TrendingUp, Activity, BarChart2, FileText, FileSpreadsheet } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { jsPDF } from 'jspdf';
 import * as XLSX from 'xlsx';
@@ -10,6 +13,36 @@ const monthNamesMap = {
   'january': 1, 'february': 2, 'march': 3, 'april': 4, 'may': 5, 'june': 6,
   'july': 7, 'august': 8, 'september': 9, 'october': 10, 'november': 11, 'december': 12
 };
+
+const getMonthNumber = (monthStr) => {
+  if (!monthStr) return 0;
+  const lower = monthStr.toLowerCase().trim();
+  return monthNamesMap[lower] || 0;
+};
+
+const prepareChartData = (records) => {
+  if (!records || records.length === 0) return [];
+  const grouped = {};
+  records.forEach(r => {
+    const period = `${r.year}-${String(getMonthNumber(r.date)).padStart(2, '0')}`;
+    if (!grouped[period]) {
+      grouped[period] = { name: period, revenue: 0, expenses: 0, profit: 0 };
+    }
+    grouped[period].revenue += r.revenue || 0;
+    grouped[period].expenses += r.expenses || 0;
+    grouped[period].profit += r.profit || 0;
+  });
+  
+  const sorted = Object.values(grouped).sort((a, b) => a.name.localeCompare(b.name));
+  return sorted.map(item => ({
+    name: item.name,
+    revenue: Math.round(item.revenue),
+    expenses: Math.round(item.expenses),
+    profit: Math.round(item.profit)
+  }));
+};
+
+const formatCurrency = (value) => `$${Number(value || 0).toLocaleString('en-US')}`;
 
 const parseRecordDate = (dateStr) => {
   if (!dateStr) return { year: 2000, month: 1 };
@@ -50,7 +83,9 @@ const cleanTurkishChars = (str) => {
     .replace(/ü/g, 'u').replace(/Ü/g, 'U');
 };
 
-function Reports({ financialRecords, loadDemoData, personnel = [], menu = [], businessType = 'general', businessName = 'İşletmem' }) {
+function Reports() {
+  const { financialRecords, personnel = [], menu = [], businessType = 'general', businessName = 'My Business' } = useOutletContext();
+  const isReady = useDeferredRender(40);
   const [filterType, setFilterType] = useState('all');
   const [startMonth, setStartMonth] = useState(1);
   const [startYear, setStartYear] = useState(new Date().getFullYear() - 1);
@@ -61,18 +96,18 @@ function Reports({ financialRecords, loadDemoData, personnel = [], menu = [], bu
 
   const years = Array.from({ length: 8 }, (_, i) => new Date().getFullYear() - 5 + i);
   const months = [
-    { value: 1, label: 'Ocak' },
-    { value: 2, label: 'Şubat' },
-    { value: 3, label: 'Mart' },
-    { value: 4, label: 'Nisan' },
-    { value: 5, label: 'Mayıs' },
-    { value: 6, label: 'Haziran' },
-    { value: 7, label: 'Temmuz' },
-    { value: 8, label: 'Ağustos' },
-    { value: 9, label: 'Eylül' },
-    { value: 10, label: 'Ekim' },
-    { value: 11, label: 'Kasım' },
-    { value: 12, label: 'Aralık' }
+    { value: 1, label: 'January' },
+    { value: 2, label: 'February' },
+    { value: 3, label: 'March' },
+    { value: 4, label: 'April' },
+    { value: 5, label: 'May' },
+    { value: 6, label: 'June' },
+    { value: 7, label: 'July' },
+    { value: 8, label: 'August' },
+    { value: 9, label: 'September' },
+    { value: 10, label: 'October' },
+    { value: 11, label: 'November' },
+    { value: 12, label: 'December' }
   ];
 
   let filteredRecords = [];
@@ -82,7 +117,7 @@ function Reports({ financialRecords, loadDemoData, personnel = [], menu = [], bu
   let totalRevenue = 0;
   let totalExpenses = 0;
   let totalProfit = 0;
-  let summaryText = "Verileriniz analiz ediliyor...";
+  let summaryText = "Analyzing your data...";
 
   let totalRent = 0;
   let totalPersonnel = 0;
@@ -132,19 +167,19 @@ function Reports({ financialRecords, loadDemoData, personnel = [], menu = [], bu
         const last = filteredRecords[filteredRecords.length - 1];
         const prev = filteredRecords[filteredRecords.length - 2];
         if (last.revenue > prev.revenue && last.expenses > prev.expenses) {
-            summaryText = `Son donemde geliriniz artis gosterdi ancak giderleriniz de ayni oranda yukseldi. Buyumeyi surdururken maliyetleri kontrol altina almak karliligi artiracaktir.`;
+            summaryText = `In the recent period, your revenue has increased but your expenses have also risen at the same rate. Controlling costs while sustaining growth will increase profitability.`;
         } else if (last.revenue > prev.revenue && last.expenses <= prev.expenses) {
-            summaryText = `Harika bir donem! Gelirleriniz artarken giderlerinizi kontrol altinda tuttunuz. Bu durum karliliginiza son derece olumlu yansidi.`;
+            summaryText = `A fantastic period! You kept your expenses under control while your revenue increased. This had a highly positive impact on your profitability.`;
         } else if (last.revenue < prev.revenue && last.expenses > prev.expenses) {
-            summaryText = `Uyari: Gelirleriniz duserken giderleriniz artis gosteriyor. Maliyet kalemlerinizi acilen gozden gecirmenizi ve tasarruf tedbirleri almanizi oneririz.`;
+            summaryText = `Warning: Your revenue is declining while your expenses are increasing. We highly recommend reviewing your cost items urgently and taking saving measures.`;
         } else {
-            summaryText = `Genel bir daralma soz konusu. Hem gelirler hem de giderler dusus trendinde. Gelirleri yeniden artiracak pazarlama veya satis stratejilerine odaklanmalisiniz.`;
+            summaryText = `There is a general contraction. Both revenues and expenses are on a downward trend. You should focus on marketing or sales strategies to increase revenues again.`;
         }
       } else {
-        summaryText = "Sadece tek bir donem verisi bulundugu icin trend analizi yapilamiyor, sonraki aylari yukleyerek gelisimi takip edebilirsiniz.";
+        summaryText = "Trend analysis cannot be performed as there is only one period of data, you can track development by uploading subsequent months.";
       }
     } else {
-      summaryText = "Secilen filtre araliginda finansal kayit bulunmamaktadir.";
+      summaryText = "No financial records found in the selected filter range.";
     }
   }
 
@@ -154,7 +189,7 @@ function Reports({ financialRecords, loadDemoData, personnel = [], menu = [], bu
 
     // Sheet 1: Financial Summary
     const summaryRows = [
-      ["Donem", "Gelir (TL)", "Gider (TL)", "Net Kar (TL)", "Kar Marji (%)"]
+      ["Period", "Revenue ($)", "Expenses ($)", "Net Profit ($)", "Profit Margin (%)"]
     ];
     filteredRecords.forEach((record, index) => {
       const rowNum = index + 2;
@@ -169,18 +204,18 @@ function Reports({ financialRecords, loadDemoData, personnel = [], menu = [], bu
     // Totals row
     const totalRowNum = filteredRecords.length + 2;
     summaryRows.push([
-      "Toplam / Ortalama",
+      "Total / Average",
       totalRevenue,
       totalExpenses,
       { t: 'n', f: `B${totalRowNum}-C${totalRowNum}` },
       totalRevenue > 0 ? Number(((totalProfit / totalRevenue) * 100).toFixed(1)) : 0
     ]);
     const ws1 = XLSX.utils.aoa_to_sheet(summaryRows);
-    XLSX.utils.book_append_sheet(wb, ws1, "Finansal Ozet");
+    XLSX.utils.book_append_sheet(wb, ws1, "Financial Summary");
 
     // Sheet 2: Personnel Details
     const personnelRows = [
-      ["Ad", "Soyad", "Rol", "Maas (TL)", "Mesai Saati (sa)", "Mesai Gideri (TL)", "Toplam Gider (TL)"]
+      ["Name", "Surname", "Role", "Salary ($)", "Overtime Hours (hr)", "Overtime Expense ($)", "Total Expense ($)"]
     ];
     personnel.forEach((p, index) => {
       const rowNum = index + 2;
@@ -197,11 +232,11 @@ function Reports({ financialRecords, loadDemoData, personnel = [], menu = [], bu
       ]);
     });
     const ws2 = XLSX.utils.aoa_to_sheet(personnelRows);
-    XLSX.utils.book_append_sheet(wb, ws2, "Personel Detaylari");
+    XLSX.utils.book_append_sheet(wb, ws2, "Personnel Details");
 
     // Sheet 3: Menu Analysis
     const menuRows = [
-      ["Yemek Adi", "Kategori", "Satis Fiyati (TL)", "Porsiyon Maliyeti (TL)", "Maliyet Orani (Food Cost %)"]
+      ["Item Name", "Category", "Sale Price ($)", "Portion Cost ($)", "Cost Ratio (Food Cost %)"]
     ];
     if (businessType === 'restaurant') {
       menu.forEach((item, index) => {
@@ -215,12 +250,12 @@ function Reports({ financialRecords, loadDemoData, personnel = [], menu = [], bu
         ]);
       });
     } else {
-      menuRows.push(["Bu modul yalnizca Restoran ve Kafe isletmeleri icin gecerlidir.", "", "", "", ""]);
+      menuRows.push(["This module is only applicable to Restaurant and Cafe businesses.", "", "", "", ""]);
     }
     const ws3 = XLSX.utils.aoa_to_sheet(menuRows);
-    XLSX.utils.book_append_sheet(wb, ws3, "Menu Analizi");
+    XLSX.utils.book_append_sheet(wb, ws3, "Menu Analysis");
 
-    XLSX.writeFile(wb, `InsightAI_Finansal_Rapor_${cleanTurkishChars(businessName || 'isletmem')}.xlsx`);
+    XLSX.writeFile(wb, `InsightAI_Financial_Report_${cleanTurkishChars(businessName || 'mybusiness')}.xlsx`);
   };
 
   const exportToPDF = () => {
@@ -237,12 +272,12 @@ function Reports({ financialRecords, loadDemoData, personnel = [], menu = [], bu
       pdf.setFont("helvetica", "normal");
       pdf.setFontSize(9);
       pdf.setTextColor(148, 163, 184);
-      pdf.text(`Sayfa ${pageNum} / ${totalPages}`, pWidth / 2, pHeight - 14, { align: 'center' });
+      pdf.text(`Page ${pageNum} / ${totalPages}`, pWidth / 2, pHeight - 14, { align: 'center' });
     };
 
-    let periodText = "Tum Zamanlar";
-    if (filterType === '3months') periodText = "Son 3 Ay";
-    else if (filterType === '6months') periodText = "Son 6 Ay";
+    let periodText = "All Time";
+    if (filterType === '3months') periodText = "Last 3 Months";
+    else if (filterType === '6months') periodText = "Last 6 Months";
     else if (filterType === 'custom') {
       periodText = `${startMonth}/${startYear} - ${endMonth}/${endYear}`;
     }
@@ -263,7 +298,7 @@ function Reports({ financialRecords, loadDemoData, personnel = [], menu = [], bu
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(14);
     pdf.setTextColor(100, 116, 139);
-    pdf.text("YAPAY ZEKA DESTEKLI FINANSAL ANALIZ RAPORU", pWidth / 2, 85, { align: 'center' });
+    pdf.text("AI-POWERED FINANCIAL ANALYSIS REPORT", pWidth / 2, 85, { align: 'center' });
 
     pdf.setDrawColor(59, 130, 246);
     pdf.setLineWidth(1);
@@ -272,7 +307,7 @@ function Reports({ financialRecords, loadDemoData, personnel = [], menu = [], bu
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(22);
     pdf.setTextColor(15, 23, 42);
-    pdf.text(cleanTurkishChars(businessName || 'Isletmem'), pWidth / 2, 130, { align: 'center' });
+    pdf.text(cleanTurkishChars(businessName || 'My Business'), pWidth / 2, 130, { align: 'center' });
 
     pdf.setFillColor(255, 255, 255);
     pdf.setDrawColor(203, 213, 225);
@@ -282,19 +317,19 @@ function Reports({ financialRecords, loadDemoData, personnel = [], menu = [], bu
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(11);
     pdf.setTextColor(71, 85, 105);
-    pdf.text("Rapor Detaylari:", 40, 168);
+    pdf.text("Report Details:", 40, 168);
     
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(10);
     pdf.setTextColor(100, 116, 139);
-    pdf.text(`Raporlama Donemi: ${cleanTurkishChars(periodText)}`, 40, 178);
-    pdf.text(`Sektor Tipi: ${cleanTurkishChars(businessType === 'restaurant' ? 'Restoran ve Kafe' : businessType === 'ecommerce' ? 'E-Ticaret' : businessType === 'b2b' ? 'B2B Girisim' : 'Genel Perakende')}`, 40, 186);
-    pdf.text(`Olusturma Tarihi: ${new Date().toLocaleDateString('tr-TR')}`, 40, 194);
+    pdf.text(`Reporting Period: ${cleanTurkishChars(periodText)}`, 40, 178);
+    pdf.text(`Sector Type: ${cleanTurkishChars(businessType === 'restaurant' ? 'Restaurant & Cafe' : businessType === 'ecommerce' ? 'E-Commerce' : businessType === 'b2b' ? 'B2B Startup' : 'General Retail')}`, 40, 186);
+    pdf.text(`Creation Date: ${new Date().toLocaleDateString('tr-TR')}`, 40, 194);
 
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(9);
     pdf.setTextColor(148, 163, 184);
-    pdf.text("Bu rapor InsightAI tarafindan otomatik olarak uretilmistir.", pWidth / 2, pHeight - 32, { align: 'center' });
+    pdf.text("This report is automatically generated by InsightAI.", pWidth / 2, pHeight - 32, { align: 'center' });
 
     drawPageDecoration(1, 3);
 
@@ -305,7 +340,7 @@ function Reports({ financialRecords, loadDemoData, personnel = [], menu = [], bu
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(18);
     pdf.setTextColor(15, 23, 42);
-    pdf.text("Yonetici Ozeti ve Finansal Durum", 20, 28);
+    pdf.text("Executive Summary and Financial Status", 20, 28);
 
     pdf.setDrawColor(59, 130, 246);
     pdf.setLineWidth(0.8);
@@ -318,7 +353,7 @@ function Reports({ financialRecords, loadDemoData, personnel = [], menu = [], bu
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(11);
     pdf.setTextColor(59, 130, 246);
-    pdf.text("Yapay Zeka Finansal Trend Analizi", 26, 46);
+    pdf.text("AI Financial Trend Analysis", 26, 46);
 
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(10);
@@ -329,7 +364,7 @@ function Reports({ financialRecords, loadDemoData, personnel = [], menu = [], bu
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(14);
     pdf.setTextColor(30, 41, 59);
-    pdf.text("Temel Finansal Performans Metrikleri", 20, 100);
+    pdf.text("Key Financial Performance Metrics", 20, 100);
 
     // KPI Gelir
     pdf.setFillColor(255, 255, 255);
@@ -338,7 +373,7 @@ function Reports({ financialRecords, loadDemoData, personnel = [], menu = [], bu
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(11);
     pdf.setTextColor(71, 85, 105);
-    pdf.text("Toplam Ciro (Gelir)", 26, 116);
+    pdf.text("Total Revenue", 26, 116);
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(16);
     pdf.setTextColor(59, 130, 246);
@@ -351,7 +386,7 @@ function Reports({ financialRecords, loadDemoData, personnel = [], menu = [], bu
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(11);
     pdf.setTextColor(71, 85, 105);
-    pdf.text("Toplam Maliyet (Gider)", 26, 146);
+    pdf.text("Total Expenses", 26, 146);
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(16);
     pdf.setTextColor(239, 68, 68);
@@ -364,7 +399,7 @@ function Reports({ financialRecords, loadDemoData, personnel = [], menu = [], bu
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(11);
     pdf.setTextColor(71, 85, 105);
-    pdf.text("Net Kar / Ortalama Marj", 26, 176);
+    pdf.text("Net Profit / Average Margin", 26, 176);
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(16);
     pdf.setTextColor(16, 185, 129);
@@ -376,16 +411,16 @@ function Reports({ financialRecords, loadDemoData, personnel = [], menu = [], bu
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(12);
     pdf.setTextColor(15, 23, 42);
-    pdf.text("Gider Kalemleri Kirilimi (Tahmini Dagilim)", 26, 214);
+    pdf.text("Expense Breakdown (Estimated Distribution)", 26, 214);
 
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(10);
     pdf.setTextColor(71, 85, 105);
-    pdf.text(`Kira Gideri (%15): ${totalRent.toLocaleString('tr-TR')} TL`, 30, 226);
-    pdf.text(`Personel Gideri (%30): ${totalPersonnel.toLocaleString('tr-TR')} TL`, 30, 234);
-    pdf.text(`Pazarlama Gideri (%10): ${totalMarketing.toLocaleString('tr-TR')} TL`, 30, 242);
-    pdf.text(`Malzeme Gideri (%35): ${totalMaterial.toLocaleString('tr-TR')} TL`, 30, 250);
-    pdf.text(`Diger Giderler (%10): ${totalOther.toLocaleString('tr-TR')} TL`, 30, 258);
+    pdf.text(`Rent Expense (15%): ${totalRent.toLocaleString('tr-TR')} TL`, 30, 226);
+    pdf.text(`Personnel Expense (30%): ${totalPersonnel.toLocaleString('tr-TR')} TL`, 30, 234);
+    pdf.text(`Marketing Expense (10%): ${totalMarketing.toLocaleString('tr-TR')} TL`, 30, 242);
+    pdf.text(`Material Expense (35%): ${totalMaterial.toLocaleString('tr-TR')} TL`, 30, 250);
+    pdf.text(`Other Expenses (10%): ${totalOther.toLocaleString('tr-TR')} TL`, 30, 258);
 
     // --- SAYFA 3: DETAYLI TABLO ---
     pdf.addPage();
@@ -394,7 +429,7 @@ function Reports({ financialRecords, loadDemoData, personnel = [], menu = [], bu
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(18);
     pdf.setTextColor(15, 23, 42);
-    pdf.text("Aylik Kirilim Tablosu", 20, 28);
+    pdf.text("Monthly Breakdown Table", 20, 28);
 
     pdf.setDrawColor(59, 130, 246);
     pdf.setLineWidth(0.8);
@@ -407,11 +442,11 @@ function Reports({ financialRecords, loadDemoData, personnel = [], menu = [], bu
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(9);
     pdf.setTextColor(255, 255, 255);
-    pdf.text("Donem", 24, startY + 6.5);
-    pdf.text("Gelir (Ciro)", 60, startY + 6.5);
-    pdf.text("Toplam Gider", 95, startY + 6.5);
-    pdf.text("Net Kar", 135, startY + 6.5);
-    pdf.text("Kar Marji", 175, startY + 6.5);
+    pdf.text("Period", 24, startY + 6.5);
+    pdf.text("Revenue", 60, startY + 6.5);
+    pdf.text("Total Expenses", 95, startY + 6.5);
+    pdf.text("Net Profit", 135, startY + 6.5);
+    pdf.text("Profit Margin", 175, startY + 6.5);
 
     let currentY = startY + 10;
     pdf.setFont("helvetica", "normal");
@@ -452,7 +487,7 @@ function Reports({ financialRecords, loadDemoData, personnel = [], menu = [], bu
 
       pdf.setFont("helvetica", "bold");
       pdf.setTextColor(15, 23, 42);
-      pdf.text("Toplam", 24, currentY + 6.5);
+      pdf.text("Total", 24, currentY + 6.5);
       pdf.text(`${totalRevenue.toLocaleString('tr-TR')} TL`, 60, currentY + 6.5);
       pdf.text(`${totalExpenses.toLocaleString('tr-TR')} TL`, 95, currentY + 6.5);
       
@@ -474,18 +509,18 @@ function Reports({ financialRecords, loadDemoData, personnel = [], menu = [], bu
     <div className="card" style={{ flexShrink: 0 }} id="report-to-export">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
         <div>
-          <h2 className="widget-title" style={{ margin: 0 }}>Detaylı Raporlama</h2>
+          <h2 className="widget-title" style={{ margin: 0 }}>Detailed Reporting</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.5rem', marginBottom: 0 }}>
-            İşletmenizin kayıtlı finansal geçmişini süzgeçten geçirin, Excel veya PDF formatlarında kurumsal raporlar olarak indirin.
+            Filter your business's recorded financial history, and download them as corporate reports in Excel or PDF formats.
           </p>
         </div>
         {hasData && filteredRecords.length > 0 && (
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <button className="btn" onClick={exportToPDF} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#ef4444', color: '#fff', border: 'none', padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}>
-              <FileText size={16} /> PDF İndir
+              <FileText size={16} /> Download PDF
             </button>
             <button className="btn" onClick={exportToExcel} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#10b981', color: '#fff', border: 'none', padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}>
-              <FileSpreadsheet size={16} /> Excel İndir
+              <FileSpreadsheet size={16} /> Download Excel
             </button>
           </div>
         )}
@@ -506,17 +541,17 @@ function Reports({ financialRecords, loadDemoData, personnel = [], menu = [], bu
             marginBottom: '1.5rem'
           }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Filtreleme Dönemi</label>
+              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Filter Period</label>
               <select 
                 value={filterType} 
                 onChange={e => setFilterType(e.target.value)}
                 className="form-input"
                 style={{ padding: '0.4rem 0.8rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)', color: 'var(--text-main)', minWidth: '150px' }}
               >
-                <option value="all">Tüm Zamanlar</option>
-                <option value="3months">Son 3 Ay</option>
-                <option value="6months">Son 6 Ay</option>
-                <option value="custom">Özel Dönem</option>
+                <option value="all">All Time</option>
+                <option value="3months">Last 3 Months</option>
+                <option value="6months">Last 6 Months</option>
+                <option value="custom">Custom Period</option>
               </select>
             </div>
 
@@ -524,7 +559,7 @@ function Reports({ financialRecords, loadDemoData, personnel = [], menu = [], bu
               <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                    <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Başlangıç Ayı</label>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Start Month</label>
                     <select 
                       value={startMonth} 
                       onChange={e => setStartMonth(Number(e.target.value))}
@@ -535,7 +570,7 @@ function Reports({ financialRecords, loadDemoData, personnel = [], menu = [], bu
                     </select>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                    <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Başlangıç Yılı</label>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Start Year</label>
                     <select 
                       value={startYear} 
                       onChange={e => setStartYear(Number(e.target.value))}
@@ -549,7 +584,7 @@ function Reports({ financialRecords, loadDemoData, personnel = [], menu = [], bu
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                    <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Bitiş Ayı</label>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>End Month</label>
                     <select 
                       value={endMonth} 
                       onChange={e => setEndMonth(Number(e.target.value))}
@@ -560,7 +595,7 @@ function Reports({ financialRecords, loadDemoData, personnel = [], menu = [], bu
                     </select>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                    <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Bitiş Yılı</label>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>End Year</label>
                     <select 
                       value={endYear} 
                       onChange={e => setEndYear(Number(e.target.value))}
@@ -577,7 +612,7 @@ function Reports({ financialRecords, loadDemoData, personnel = [], menu = [], bu
 
           {filteredRecords.length === 0 ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '200px', color: 'var(--text-secondary)', border: '1px dashed var(--border-color)', borderRadius: '8px' }}>
-              Seçilen kriterlere uygun veri bulunamadı.
+              No data found matching the selected criteria.
             </div>
           ) : (
             <>
@@ -588,9 +623,9 @@ function Reports({ financialRecords, loadDemoData, personnel = [], menu = [], bu
                     <TrendingUp size={24} />
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Toplam Ciro</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Total Revenue</div>
                     <div style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-main)' }}>{totalRevenue.toLocaleString('tr-TR')} TL</div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Filtrelenen Dönem</div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Filtered Period</div>
                   </div>
                 </div>
                 
@@ -599,9 +634,9 @@ function Reports({ financialRecords, loadDemoData, personnel = [], menu = [], bu
                     <Activity size={24} />
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Toplam Net Kâr</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Total Net Profit</div>
                     <div style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-main)' }}>{totalProfit.toLocaleString('tr-TR')} TL</div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Net Kazanç</div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Net Earnings</div>
                   </div>
                 </div>
                 
@@ -610,16 +645,16 @@ function Reports({ financialRecords, loadDemoData, personnel = [], menu = [], bu
                     <BarChart2 size={24} />
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Ortalama Kâr Marjı</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Average Profit Margin</div>
                     <div style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-main)' }}>%{avgMargin}</div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Genel Performans</div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Overall Performance</div>
                   </div>
                 </div>
               </div>
 
               <div style={{ padding: '1.5rem', backgroundColor: 'var(--bg-main)', borderRadius: '8px', marginBottom: '2rem', border: '1px solid var(--color-primary-light)' }}>
                 <h3 style={{ fontSize: '1.05rem', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.75rem 0' }}>
-                   Yönetici Özeti ve Trend Yorumu
+                   Executive Summary and Trend Review
                 </h3>
                 <p style={{ color: 'var(--text-main)', fontSize: '0.95rem', lineHeight: 1.6, margin: 0 }}>
                   {summaryText}
@@ -627,39 +662,45 @@ function Reports({ financialRecords, loadDemoData, personnel = [], menu = [], bu
               </div>
 
               {/* Trend Chart */}
-              <div style={{ marginBottom: '2rem', height: '350px', backgroundColor: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '1.5rem 1rem 1rem 1rem' }}>
-                <h3 style={{ fontSize: '1rem', color: 'var(--text-main)', marginBottom: '1rem', fontWeight: 600 }}>Finansal Gelişim Trendi (Gelir, Gider, Kâr)</h3>
-                <ResponsiveContainer width="100%" height="90%">
-                  <LineChart data={filteredRecords} margin={{ top: 10, right: 30, left: 20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
-                    <XAxis dataKey="date" stroke="var(--text-secondary)" fontSize={12} />
-                    <YAxis stroke="var(--text-secondary)" fontSize={12} tickFormatter={(value) => `${(value / 1000)}k`} />
-                    <Tooltip 
-                      formatter={(value) => [`${value.toLocaleString('tr-TR')} TL`]} 
-                      contentStyle={{ backgroundColor: 'var(--bg-main)', borderColor: 'var(--border-color)', color: 'var(--text-main)' }}
-                    />
-                    <Legend verticalAlign="top" height={36} />
-                    <Line type="monotone" dataKey="revenue" name="Gelir" stroke="#3b82f6" strokeWidth={3} activeDot={{ r: 8 }} />
-                    <Line type="monotone" dataKey="expenses" name="Gider" stroke="#ef4444" strokeWidth={3} />
-                    <Line type="monotone" dataKey="profit" name="Kâr" stroke="#10b981" strokeWidth={3} />
-                  </LineChart>
-                </ResponsiveContainer>
+              <div style={{ marginBottom: '2rem', height: '350px', backgroundColor: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '1.5rem 1rem 1rem 1rem', display: 'flex', flexDirection: 'column' }}>
+                <h3 style={{ fontSize: '1rem', color: 'var(--text-main)', marginBottom: '1rem', fontWeight: 600 }}>Financial Growth Trend (Revenue, Expenses, Profit)</h3>
+                {isReady ? (
+                  <ResponsiveContainer width="100%" height="90%">
+                    <LineChart data={filteredRecords} margin={{ top: 10, right: 30, left: 20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
+                      <XAxis dataKey="date" stroke="var(--text-secondary)" fontSize={12} />
+                      <YAxis stroke="var(--text-secondary)" fontSize={12} tickFormatter={(value) => `${(value / 1000)}k`} />
+                      <Tooltip 
+                        formatter={(value) => [`${value.toLocaleString('tr-TR')} TL`]} 
+                        contentStyle={{ backgroundColor: 'var(--bg-main)', borderColor: 'var(--border-color)', color: 'var(--text-main)' }}
+                      />
+                      <Legend verticalAlign="top" height={36} />
+                      <Line type="monotone" dataKey="revenue" name="Revenue" stroke="#3b82f6" strokeWidth={3} activeDot={{ r: 8 }} />
+                      <Line type="monotone" dataKey="expenses" name="Expenses" stroke="#ef4444" strokeWidth={3} />
+                      <Line type="monotone" dataKey="profit" name="Profit" stroke="#10b981" strokeWidth={3} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                    Loading chart...
+                  </div>
+                )}
               </div>
 
               <div className="table-wrapper">
                 <table className="custom-table" style={{ width: '100%' }}>
                   <thead>
                     <tr>
-                      <th>Tarih / Dönem</th>
-                      <th>Ciro (Gelir)</th>
-                      <th>Giderler</th>
-                      <th>Kira</th>
-                      <th>Personel</th>
-                      <th>Pazarlama</th>
-                      <th>Malzeme</th>
-                      <th>Diğer</th>
-                      <th>Net Kar</th>
-                      <th>Kar Marjı</th>
+                      <th>Date / Period</th>
+                      <th>Revenue</th>
+                      <th>Expenses</th>
+                      <th>Rent</th>
+                      <th>Personnel</th>
+                      <th>Marketing</th>
+                      <th>Material</th>
+                      <th>Other</th>
+                      <th>Net Profit</th>
+                      <th>Profit Margin</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -699,8 +740,8 @@ function Reports({ financialRecords, loadDemoData, personnel = [], menu = [], bu
         </>
       ) : (
         <div style={{ textAlign: 'center', padding: '3rem' }}>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>Raporları incelemek için herhangi bir veri bulunamadı.</p>
-          <button className="btn btn-primary" onClick={loadDemoData}>Demo Verisi Yükle</button>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>No data found to review reports.</p>
+          <button className="btn btn-primary" onClick={loadDemoData}>Load Demo Data</button>
         </div>
       )}
     </div>

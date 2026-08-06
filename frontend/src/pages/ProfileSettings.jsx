@@ -1,28 +1,29 @@
 import React, { useState, useEffect } from 'react';
+import { useOutletContext } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { CheckCircle } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { api } from '../services/api';
 
-function ProfileSettings({ 
-  businessName, 
-  setBusinessName, 
-  businessType, 
-  setBusinessType, 
-  email,
-  onSaveSuccess 
-}) {
+function ProfileSettings() {
+  const { user, updateProfileState } = useAuth();
+  
+  const [bName, setBName] = useState(user?.businessName || '');
+  const [bType, setBType] = useState(user?.businessType || 'general');
+  const [userEmail, setUserEmail] = useState(user?.email || '');
+  
   const [loading, setLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   
-  const [userEmail, setUserEmail] = useState(email || '');
   const [password, setPassword] = useState('');
   const [credLoading, setCredLoading] = useState(false);
   const [credStatus, setCredStatus] = useState('');
 
   useEffect(() => {
-    if (email) {
-      setUserEmail(email);
+    if (user?.email) {
+      setUserEmail(user.email);
     }
-  }, [email]);
+  }, [user]);
 
   const handleSaveProfile = async (e) => {
     e.preventDefault();
@@ -30,11 +31,9 @@ function ProfileSettings({
     setStatusMessage('');
 
     try {
-      await api.updateProfile(businessName, businessType);
+      await api.updateProfile(bName, bType);
       setStatusMessage('Profile updated successfully!');
-      if (onSaveSuccess) {
-        onSaveSuccess(businessName, businessType, userEmail);
-      }
+      updateProfileState(bName, bType);
       setTimeout(() => setStatusMessage(''), 3000);
     } catch (err) {
       console.warn("Failed to save profile settings.", err);
@@ -53,9 +52,7 @@ function ProfileSettings({
       await api.updateCredentials(userEmail, password);
       setCredStatus('Credentials updated successfully!');
       setPassword('');
-      if (onSaveSuccess) {
-        onSaveSuccess(businessName, businessType, userEmail);
-      }
+      updateProfileState(bName, bType);
       setTimeout(() => setCredStatus(''), 3000);
     } catch (err) {
       console.warn("Failed to update credentials.", err);
@@ -79,8 +76,8 @@ function ProfileSettings({
             type="text" 
             id="b_name"
             className="text-input"
-            value={businessName}
-            onChange={(e) => setBusinessName(e.target.value)}
+            value={bName}
+            onChange={(e) => setBName(e.target.value)}
             placeholder="e.g., Coffee House, E-Shop"
             required
           />
@@ -92,8 +89,8 @@ function ProfileSettings({
             id="b_type"
             className="select-input"
             style={{ height: '45px' }}
-            value={businessType}
-            onChange={(e) => setBusinessType(e.target.value)}
+            value={bType}
+            onChange={(e) => setBType(e.target.value)}
           >
             <option value="general">General Retail</option>
             <option value="restaurant">Restaurant & Cafe</option>

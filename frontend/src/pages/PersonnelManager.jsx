@@ -1,10 +1,17 @@
 import React, { useState, useEffect } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { Plus, Trash2, Users, Clock, DollarSign, UserCheck, AlertCircle, Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { api } from '../services/api';
 
 const formatCurrency = (value) => `$${Number(value || 0).toLocaleString('en-US')}`;
 
-function PersonnelManager({ onDataChange }) {
+function PersonnelManager() {
+  const { fetchData, triggerAnalysis } = useOutletContext();
+  const onDataChange = async () => {
+    await fetchData();
+    triggerAnalysis(true);
+  };
   const [personnelList, setPersonnelList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
@@ -146,7 +153,7 @@ function PersonnelManager({ onDataChange }) {
             <Users size={24} />
           </div>
           <div>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Toplam Personel</div>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Total Personnel</div>
             <div style={{ fontSize: '1.5rem', fontWeight: '700' }}>{personnelList.length}</div>
           </div>
         </div>
@@ -156,7 +163,7 @@ function PersonnelManager({ onDataChange }) {
             <DollarSign size={24} />
           </div>
           <div>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Maaş Toplamı</div>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Total Salary</div>
             <div style={{ fontSize: '1.5rem', fontWeight: '700' }}>{formatCurrency(totalMonthlySalary)}</div>
           </div>
         </div>
@@ -166,7 +173,7 @@ function PersonnelManager({ onDataChange }) {
             <Clock size={24} />
           </div>
           <div>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Mesai Toplamı</div>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Total Overtime</div>
             <div style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--color-warning)' }}>{formatCurrency(totalOvertimeCost)}</div>
           </div>
         </div>
@@ -176,7 +183,7 @@ function PersonnelManager({ onDataChange }) {
             <UserCheck size={24} />
           </div>
           <div>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Toplam Personel Maliyeti</div>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Total Personnel Cost</div>
             <div style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--color-success)' }}>{formatCurrency(totalMonthlySalary + totalOvertimeCost)}</div>
           </div>
         </div>
@@ -189,13 +196,13 @@ function PersonnelManager({ onDataChange }) {
         <div className="card" style={{ animation: 'fadeInUp var(--transition-normal)' }}>
           <h3 className="widget-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
             <UserCheck size={20} className="text-accent" />
-            Yeni Personel Ekle
+            Add New Personnel
           </h3>
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               <div className="form-group">
-                <label style={{ fontSize: '0.85rem', fontWeight: '500' }}>Adı <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+                <label style={{ fontSize: '0.85rem', fontWeight: '500' }}>Name <span style={{ color: 'var(--color-danger)' }}>*</span></label>
                 <input 
                   type="text" 
                   name="name" 
@@ -207,7 +214,7 @@ function PersonnelManager({ onDataChange }) {
                 />
               </div>
               <div className="form-group">
-                <label style={{ fontSize: '0.85rem', fontWeight: '500' }}>Soyadı <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+                <label style={{ fontSize: '0.85rem', fontWeight: '500' }}>Surname <span style={{ color: 'var(--color-danger)' }}>*</span></label>
                 <input 
                   type="text" 
                   name="surname" 
@@ -221,7 +228,7 @@ function PersonnelManager({ onDataChange }) {
             </div>
 
             <div className="form-group">
-              <label style={{ fontSize: '0.85rem', fontWeight: '500' }}>Rolü <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+              <label style={{ fontSize: '0.85rem', fontWeight: '500' }}>Role <span style={{ color: 'var(--color-danger)' }}>*</span></label>
               <select 
                 name="role" 
                 className="select-input" 
@@ -236,7 +243,7 @@ function PersonnelManager({ onDataChange }) {
             </div>
 
             <div className="form-group">
-              <label style={{ fontSize: '0.85rem', fontWeight: '500' }}>Aylık Sabit Maaş (₺) <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+              <label style={{ fontSize: '0.85rem', fontWeight: '500' }}>Monthly Fixed Salary ($) <span style={{ color: 'var(--color-danger)' }}>*</span></label>
               <input 
                 type="number" 
                 name="monthly_salary" 
@@ -253,7 +260,7 @@ function PersonnelManager({ onDataChange }) {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               <div className="form-group">
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem', fontWeight: '500' }}>
-                  Mesai Saat Ücreti (₺)
+                  Overtime Hourly Rate ($)
                 </label>
                 <input 
                   type="number" 
@@ -267,7 +274,7 @@ function PersonnelManager({ onDataChange }) {
                 />
               </div>
               <div className="form-group">
-                <label style={{ fontSize: '0.85rem', fontWeight: '500' }}>Mesai Saati (saat)</label>
+                <label style={{ fontSize: '0.85rem', fontWeight: '500' }}>Overtime Hours (hrs)</label>
                 <input 
                   type="number" 
                   name="overtime_hours" 
@@ -300,12 +307,12 @@ function PersonnelManager({ onDataChange }) {
               {submitLoading ? (
                 <>
                   <Loader2 size={18} className="animate-spin" style={{ animation: 'spin 1s linear infinite' }} />
-                  Kaydediliyor...
+                  Saving...
                 </>
               ) : (
                 <>
                   <Plus size={18} />
-                  Personel Ekle
+                  Add Personnel
                 </>
               )}
             </button>
@@ -315,14 +322,14 @@ function PersonnelManager({ onDataChange }) {
         {/* Personel Listesi ve Tablosu */}
         <div className="card" style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'column', gap: '1rem', minHeight: '380px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
-            <h3 className="widget-title" style={{ margin: 0 }}>Personel & Mesai Takip Listesi</h3>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Toplam: {personnelList.length} Çalışan</span>
+            <h3 className="widget-title" style={{ margin: 0 }}>Personnel & Overtime Tracking List</h3>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Total: {personnelList.length} Employees</span>
           </div>
 
           {loading ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: '0.5rem' }}>
               <Loader2 size={36} style={{ color: 'var(--color-accent)', animation: 'spin 1s linear infinite' }} />
-              <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Personel listesi yükleniyor...</span>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Loading personnel list...</span>
             </div>
           ) : personnelList.length === 0 ? (
             /* Empty State */
@@ -330,9 +337,9 @@ function PersonnelManager({ onDataChange }) {
               <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
                 <Users size={32} style={{ color: 'var(--text-muted)' }} />
               </div>
-              <h4 style={{ color: 'var(--text-main)', marginBottom: '0.5rem', fontWeight: 600 }}>Kayıtlı Personel Bulunmamaktadır</h4>
+              <h4 style={{ color: 'var(--text-main)', marginBottom: '0.5rem', fontWeight: 600 }}>No Registered Personnel</h4>
               <p style={{ fontSize: '0.85rem', maxWidth: '380px', margin: '0 auto 1.5rem auto' }}>
-                Ekibinizi yönetmek, mesai saatlerini ve maliyetlerini hesaplamak için sol taraftaki formu kullanarak personel ekleyin.
+                Manage your team, calculate working hours and costs by adding personnel using the form on the left.
               </p>
             </div>
           ) : (
@@ -341,14 +348,14 @@ function PersonnelManager({ onDataChange }) {
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
                 <thead>
                   <tr style={{ borderBottom: '2px solid var(--border-color)', color: 'var(--text-muted)' }}>
-                    <th style={{ padding: '0.75rem 0.5rem', fontWeight: '600' }}>Adı Soyadı</th>
-                    <th style={{ padding: '0.75rem 0.5rem', fontWeight: '600' }}>Rolü</th>
-                    <th style={{ padding: '0.75rem 0.5rem', fontWeight: '600', textAlign: 'right' }}>Aylık Maaş</th>
-                    <th style={{ padding: '0.75rem 0.5rem', fontWeight: '600', textAlign: 'right' }}>Mesai Saat Ücreti</th>
-                    <th style={{ padding: '0.75rem 0.5rem', fontWeight: '600', textAlign: 'right' }}>Mesai Saati</th>
-                    <th style={{ padding: '0.75rem 0.5rem', fontWeight: '600', textAlign: 'right' }}>Mesai Gideri</th>
-                    <th style={{ padding: '0.75rem 0.5rem', fontWeight: '600', textAlign: 'right' }}>Toplam Maliyet</th>
-                    <th style={{ padding: '0.75rem 0.5rem', fontWeight: '600', textAlign: 'center' }}>İşlem</th>
+                    <th style={{ padding: '0.75rem 0.5rem', fontWeight: '600' }}>Full Name</th>
+                    <th style={{ padding: '0.75rem 0.5rem', fontWeight: '600' }}>Role</th>
+                    <th style={{ padding: '0.75rem 0.5rem', fontWeight: '600', textAlign: 'right' }}>Monthly Salary</th>
+                    <th style={{ padding: '0.75rem 0.5rem', fontWeight: '600', textAlign: 'right' }}>Overtime Rate</th>
+                    <th style={{ padding: '0.75rem 0.5rem', fontWeight: '600', textAlign: 'right' }}>Overtime Hours</th>
+                    <th style={{ padding: '0.75rem 0.5rem', fontWeight: '600', textAlign: 'right' }}>Overtime Expense</th>
+                    <th style={{ padding: '0.75rem 0.5rem', fontWeight: '600', textAlign: 'right' }}>Total Cost</th>
+                    <th style={{ padding: '0.75rem 0.5rem', fontWeight: '600', textAlign: 'center' }}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -386,7 +393,7 @@ function PersonnelManager({ onDataChange }) {
                           {formatCurrency(person.overtime_rate)}
                         </td>
                         <td style={{ padding: '0.85rem 0.5rem', textAlign: 'right', fontWeight: '500' }}>
-                          {person.overtime_hours || 0} sa
+                          {person.overtime_hours || 0} hrs
                         </td>
                         <td style={{ padding: '0.85rem 0.5rem', textAlign: 'right', fontWeight: '500', color: 'var(--color-warning)' }}>
                           {formatCurrency(overtimeExpense)}
@@ -398,7 +405,7 @@ function PersonnelManager({ onDataChange }) {
                           <button 
                             onClick={() => handleDelete(person.id)}
                             className="close-chat-btn"
-                            title="Personeli Sil"
+                            title="Delete Personnel"
                             style={{ color: 'var(--color-danger)', display: 'inline-flex', padding: '0.35rem' }}
                           >
                             <Trash2 size={16} />

@@ -1,10 +1,17 @@
 import React, { useState, useEffect } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { Plus, Trash2, Utensils, Percent, DollarSign, AlertTriangle, Lock, CheckCircle, Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { api } from '../services/api';
 
 const formatCurrency = (value) => `$${Number(value || 0).toLocaleString('en-US')}`;
 
-function MenuManager({ businessType, onDataChange }) {
+function MenuManager() {
+  const { businessType, fetchData, triggerAnalysis } = useOutletContext();
+  const onDataChange = async () => {
+    await fetchData();
+    triggerAnalysis(true);
+  };
   const [menuList, setMenuList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
@@ -136,7 +143,7 @@ function MenuManager({ businessType, onDataChange }) {
 
   // Calculate food cost ratio and determine badge data
   const getFoodCostMetrics = (portionCost, salePrice) => {
-    if (!salePrice || salePrice <= 0) return { percent: 0, badgeClass: 'success', text: 'Geçersiz Fiyat', color: 'var(--color-success)' };
+    if (!salePrice || salePrice <= 0) return { percent: 0, badgeClass: 'success', text: 'Invalid Price', color: 'var(--color-success)' };
     const percent = (portionCost / salePrice) * 100;
     
     if (percent > 35) {
@@ -145,7 +152,7 @@ function MenuManager({ businessType, onDataChange }) {
         badgeClass: 'danger',
         bg: 'var(--color-danger-light)',
         color: 'var(--color-danger)',
-        text: 'Yüksek Maliyet'
+        text: 'High Cost'
       };
     } else if (percent >= 30 && percent <= 35) {
       return {
@@ -153,7 +160,7 @@ function MenuManager({ businessType, onDataChange }) {
         badgeClass: 'warning',
         bg: 'var(--color-warning-light)',
         color: 'var(--color-warning)',
-        text: 'Orta Maliyet'
+        text: 'Medium Cost'
       };
     } else {
       return {
@@ -161,7 +168,7 @@ function MenuManager({ businessType, onDataChange }) {
         badgeClass: 'success',
         bg: 'var(--color-success-light)',
         color: 'var(--color-success)',
-        text: 'İyi Marj'
+        text: 'Good Margin'
       };
     }
   };
@@ -175,7 +182,7 @@ function MenuManager({ businessType, onDataChange }) {
             <Utensils size={24} />
           </div>
           <div>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Toplam Menü Öğesi</div>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Total Menu Items</div>
             <div style={{ fontSize: '1.5rem', fontWeight: '700' }}>{menuList.length}</div>
           </div>
         </div>
@@ -185,7 +192,7 @@ function MenuManager({ businessType, onDataChange }) {
             <Percent size={24} />
           </div>
           <div>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Ortalama Food Cost %</div>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Average Food Cost %</div>
             <div style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--color-warning)' }}>
               {menuList.length > 0 
                 ? (menuList.reduce((sum, item) => sum + ((item.portion_cost / item.sale_price) * 100), 0) / menuList.length).toFixed(1) + ' %'
@@ -203,17 +210,17 @@ function MenuManager({ businessType, onDataChange }) {
         <div className="card" style={{ animation: 'fadeInUp var(--transition-normal)' }}>
           <h3 className="widget-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
             <Utensils size={20} className="text-accent" />
-            Yeni Menü Öğesi Ekle
+            Add New Menu Item
           </h3>
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div className="form-group">
-              <label style={{ fontSize: '0.85rem', fontWeight: '500' }}>Yemek/İçecek Adı <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+              <label style={{ fontSize: '0.85rem', fontWeight: '500' }}>Item Name <span style={{ color: 'var(--color-danger)' }}>*</span></label>
               <input 
                 type="text" 
                 name="item_name" 
                 className="text-input" 
-                placeholder="Örn: Kebap, Latte, Tiramisu"
+                placeholder="e.g. Kebab, Latte, Tiramisu"
                 value={form.item_name} 
                 onChange={handleChange}
                 required 
@@ -221,7 +228,7 @@ function MenuManager({ businessType, onDataChange }) {
             </div>
 
             <div className="form-group">
-              <label style={{ fontSize: '0.85rem', fontWeight: '500' }}>Kategori <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+              <label style={{ fontSize: '0.85rem', fontWeight: '500' }}>Category <span style={{ color: 'var(--color-danger)' }}>*</span></label>
               <select 
                 name="category" 
                 className="select-input" 
@@ -238,7 +245,7 @@ function MenuManager({ businessType, onDataChange }) {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               <div className="form-group">
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem', fontWeight: '500' }}>
-                  Satış Fiyatı (₺) <span style={{ color: 'var(--color-danger)' }}>*</span>
+                  Sale Price ($) <span style={{ color: 'var(--color-danger)' }}>*</span>
                 </label>
                 <input 
                   type="number" 
@@ -253,7 +260,7 @@ function MenuManager({ businessType, onDataChange }) {
                 />
               </div>
               <div className="form-group">
-                <label style={{ fontSize: '0.85rem', fontWeight: '500' }}>Porsiyon Maliyeti (₺) <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+                <label style={{ fontSize: '0.85rem', fontWeight: '500' }}>Portion Cost ($) <span style={{ color: 'var(--color-danger)' }}>*</span></label>
                 <input 
                   type="number" 
                   name="portion_cost" 
@@ -278,7 +285,7 @@ function MenuManager({ businessType, onDataChange }) {
                 fontSize: '0.85rem'
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Tahmini Gıda Maliyet Oranı:</span>
+                  <span>Estimated Food Cost Ratio:</span>
                   <span style={{ fontWeight: '600' }}>
                     {((form.portion_cost / form.sale_price) * 100).toFixed(1)} %
                   </span>
@@ -305,12 +312,12 @@ function MenuManager({ businessType, onDataChange }) {
               {submitLoading ? (
                 <>
                   <Loader2 size={18} className="animate-spin" style={{ animation: 'spin 1s linear infinite' }} />
-                  Kaydediliyor...
+                  Saving...
                 </>
               ) : (
                 <>
                   <Plus size={18} />
-                  Menüye Ekle
+                  Add to Menu
                 </>
               )}
             </button>
@@ -320,14 +327,14 @@ function MenuManager({ businessType, onDataChange }) {
         {/* Menu Items List and Table */}
         <div className="card" style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'column', gap: '1rem', minHeight: '380px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
-            <h3 className="widget-title" style={{ margin: 0 }}>Menü & Maliyet Analiz Tablosu</h3>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Toplam: {menuList.length} Ürün</span>
+            <h3 className="widget-title" style={{ margin: 0 }}>Menu & Cost Analysis Table</h3>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Total: {menuList.length} Items</span>
           </div>
 
           {loading ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: '0.5rem' }}>
               <Loader2 size={36} style={{ color: 'var(--color-accent)', animation: 'spin 1s linear infinite' }} />
-              <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Menü listesi yükleniyor...</span>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Loading menu list...</span>
             </div>
           ) : menuList.length === 0 ? (
             /* Empty State */
@@ -335,9 +342,9 @@ function MenuManager({ businessType, onDataChange }) {
               <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
                 <Utensils size={32} style={{ color: 'var(--text-muted)' }} />
               </div>
-              <h4 style={{ color: 'var(--text-main)', marginBottom: '0.5rem', fontWeight: 600 }}>Kayıtlı Menü Öğesi Bulunmamaktadır</h4>
+              <h4 style={{ color: 'var(--text-main)', marginBottom: '0.5rem', fontWeight: 600 }}>No Registered Menu Items</h4>
               <p style={{ fontSize: '0.85rem', maxWidth: '380px', margin: '0 auto 1.5rem auto' }}>
-                Yemeklerinizi, satış fiyatlarını ve porsiyon maliyetlerini ekleyerek gıda maliyet oranlarınızı analiz etmeye başlayın.
+                Start analyzing your food cost ratios by adding your dishes, selling prices, and portion costs.
               </p>
             </div>
           ) : (
@@ -346,12 +353,12 @@ function MenuManager({ businessType, onDataChange }) {
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
                 <thead>
                   <tr style={{ borderBottom: '2px solid var(--border-color)', color: 'var(--text-muted)' }}>
-                    <th style={{ padding: '0.75rem 0.5rem', fontWeight: '600' }}>Yemek Adı</th>
-                    <th style={{ padding: '0.75rem 0.5rem', fontWeight: '600' }}>Kategori</th>
-                    <th style={{ padding: '0.75rem 0.5rem', fontWeight: '600', textAlign: 'right' }}>Satış Fiyatı</th>
-                    <th style={{ padding: '0.75rem 0.5rem', fontWeight: '600', textAlign: 'right' }}>Porsiyon Maliyeti</th>
+                    <th style={{ padding: '0.75rem 0.5rem', fontWeight: '600' }}>Item Name</th>
+                    <th style={{ padding: '0.75rem 0.5rem', fontWeight: '600' }}>Category</th>
+                    <th style={{ padding: '0.75rem 0.5rem', fontWeight: '600', textAlign: 'right' }}>Sale Price</th>
+                    <th style={{ padding: '0.75rem 0.5rem', fontWeight: '600', textAlign: 'right' }}>Portion Cost</th>
                     <th style={{ padding: '0.75rem 0.5rem', fontWeight: '600', textAlign: 'right' }}>Food Cost %</th>
-                    <th style={{ padding: '0.75rem 0.5rem', fontWeight: '600', textAlign: 'center' }}>İşlem</th>
+                    <th style={{ padding: '0.75rem 0.5rem', fontWeight: '600', textAlign: 'center' }}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -408,7 +415,7 @@ function MenuManager({ businessType, onDataChange }) {
                           <button 
                             onClick={() => handleDelete(item.id)}
                             className="close-chat-btn"
-                            title="Öğeyi Sil"
+                            title="Delete Item"
                             style={{ color: 'var(--color-danger)', display: 'inline-flex', padding: '0.35rem' }}
                           >
                             <Trash2 size={16} />

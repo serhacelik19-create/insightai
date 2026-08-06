@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const formatCurrency = (value) => `${Number(value || 0).toLocaleString('tr-TR')} ₺`;
+const formatCurrency = (value) => `$${Number(value || 0).toLocaleString('en-US')}`;
 
 function CashFlowGauge({ financialRecords }) {
   const [healthData, setHealthData] = useState(null);
@@ -38,7 +38,7 @@ function CashFlowGauge({ financialRecords }) {
   if (!hasData) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '160px', color: 'var(--text-secondary)' }}>
-        Nakit akışı verisi bulunamadı.
+        No cash flow data found.
       </div>
     );
   }
@@ -72,17 +72,17 @@ function CashFlowGauge({ financialRecords }) {
 
   // Renk ve durum belirleme
   let strokeColor = '#EF4444';
-  let statusText = 'Zayıf';
-  let commentText = 'Nakit akışınız riskli seviyede. Maliyetlerinizi acilen düşürmeniz veya alacak tahsilatını hızlandırmanız gerekiyor.';
+  let statusText = 'Weak';
+  let commentText = 'Your cash flow is at a risky level. You need to urgently reduce costs or accelerate receivables collection.';
   
   if (score > 40 && score <= 70) {
     strokeColor = '#F59E0B';
-    statusText = 'Orta';
-    commentText = 'Nakit akışınız dengeli ancak büyüme için daha fazla kârlılık ve gider disiplini sağlanmalı.';
+    statusText = 'Moderate';
+    commentText = 'Your cash flow is balanced, but more profitability and expense discipline should be achieved for growth.';
   } else if (score > 70) {
     strokeColor = '#10B981';
-    statusText = 'Güçlü';
-    commentText = 'Nakit akışınız son derece sağlıklı. İşletmeniz yeni yatırımlar ve büyüme için güçlü bir finansal zemine sahip.';
+    statusText = 'Strong';
+    commentText = 'Your cash flow is highly healthy. Your business has a strong financial foundation for new investments and growth.';
   }
 
   if (healthData && healthData.cash_flow_comment) {
@@ -158,7 +158,7 @@ function CashFlowGauge({ financialRecords }) {
             transition: 'all 0.2s'
           }}
         >
-          <span>ℹ️ Skor Nasıl Hesaplanır?</span>
+          <span>ℹ️ How is the Score Calculated?</span>
         </button>
 
         {showTooltip && (
@@ -181,7 +181,7 @@ function CashFlowGauge({ financialRecords }) {
             lineHeight: '1.4'
           }}>
             <div style={{ fontWeight: 'bold', marginBottom: '0.4rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>Sağlık Skoru Hesaplaması</span>
+              <span>Health Score Calculation</span>
               <button 
                 onClick={() => setShowTooltip(false)} 
                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold', color: 'var(--text-secondary)' }}
@@ -189,13 +189,13 @@ function CashFlowGauge({ financialRecords }) {
                 ✕
               </button>
             </div>
-            <p style={{ margin: '0 0 0.4rem 0' }}>Skorunuz aşağıdaki 5 temel metriğin eşit ağırlıklı ortalaması alınarak hesaplanır:</p>
+            <p style={{ margin: '0 0 0.4rem 0' }}>Your score is calculated by taking the equally weighted average of the following 5 core metrics:</p>
             <ul style={{ margin: 0, paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-              <li><strong>Kârlılık:</strong> Net kâr marjınızın %30 hedefine oranı.</li>
-              <li><strong>Büyüme:</strong> Son dönemdeki ciro artış trendi.</li>
-              <li><strong>Maliyet Kontrolü:</strong> Giderlerinizin cironuza oranı (%50 hedef).</li>
-              <li><strong>Ürün Çeşitliliği:</strong> Portföyünüzdeki ürün sayısı (Hedef: 4+ ürün).</li>
-              <li><strong>Stabilite:</strong> Kârlı geçen ayların tüm aylara oranı.</li>
+              <li><strong>Profitability:</strong> The ratio of your net profit margin to the 30% target.</li>
+              <li><strong>Growth:</strong> The recent revenue growth trend.</li>
+              <li><strong>Cost Control:</strong> The ratio of your expenses to your revenue (50% target).</li>
+              <li><strong>Product Diversity:</strong> Number of products in your portfolio (Target: 4+ products).</li>
+              <li><strong>Stability:</strong> The ratio of profitable months to all months.</li>
             </ul>
           </div>
         )}

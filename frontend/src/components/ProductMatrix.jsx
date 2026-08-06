@@ -2,7 +2,7 @@ import React from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell } from 'recharts';
 import { Star, AlertTriangle } from 'lucide-react';
 
-const formatCurrency = (value) => `${Number(value || 0).toLocaleString('tr-TR')} ₺`;
+const formatCurrency = (value) => `$${Number(value || 0).toLocaleString('en-US')}`;
 
 function ProductMatrix({ topProducts }) {
   const hasData = topProducts && topProducts.length > 0;
@@ -10,7 +10,7 @@ function ProductMatrix({ topProducts }) {
   if (!hasData) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '220px', color: 'var(--text-secondary)' }}>
-        Ürün performans verisi bulunamadı.
+        No product performance data found.
       </div>
     );
   }
@@ -52,7 +52,7 @@ function ProductMatrix({ topProducts }) {
             <XAxis type="number" stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${v / 1000}k`} />
             <YAxis dataKey="name" type="category" stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} width={80} />
             <Tooltip
-              formatter={(value) => [formatCurrency(value), 'Gelir']}
+              formatter={(value) => [formatCurrency(value), 'Revenue']}
               contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '6px' }}
             />
             <Bar dataKey="revenue" fill="var(--color-primary)" radius={[0, 4, 4, 0]} barSize={12}>
@@ -88,28 +88,28 @@ function ProductMatrix({ topProducts }) {
                 <span style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{prod.name}</span>
                 {isStar && (
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.15rem', fontSize: '0.75rem', color: 'var(--color-success)', fontWeight: 600, flexShrink: 0 }}>
-                    <Star size={12} fill="var(--color-success)" /> Yıldız
+                    <Star size={12} fill="var(--color-success)" /> Star
                   </span>
                 )}
                 {isDog && (
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.15rem', fontSize: '0.75rem', color: 'var(--color-danger)', fontWeight: 600, flexShrink: 0 }}>
-                    <AlertTriangle size={12} /> Dikkat
+                    <AlertTriangle size={12} /> Warning
                   </span>
                 )}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.8rem', flexShrink: 0 }}>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>Gelir</div>
+                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>Revenue</div>
                   <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{formatCurrency(prod.revenue)}</div>
                 </div>
                 <div style={{ textAlign: 'right', minWidth: '55px' }}>
-                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>Marj</div>
+                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>Margin</div>
                   <div style={{ fontWeight: 600, color: isStar ? 'var(--color-success)' : isDog ? 'var(--color-danger)' : 'var(--text-main)' }}>
                     %{prod.marginPercent}
                   </div>
                 </div>
                 <div style={{ textAlign: 'right', minWidth: '65px' }}>
-                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>Birim Mal.</div>
+                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>Unit Cost</div>
                   <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{formatCurrency(prod.cost_per_unit)}</div>
                 </div>
               </div>

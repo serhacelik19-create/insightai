@@ -51,7 +51,7 @@ function ChatBot({ isOpen, onClose, messages = [], setMessages, financialRecords
 
   const handleFallbackResponse = (text) => {
     if (!financialRecords || financialRecords.length === 0) {
-      setMessages(prev => [...prev, { role: 'ai', content: 'Simüle moddayım. Ancak detaylı analiz yapabilmem için öncelikle finansal verilerinizi yüklemeniz gerekiyor.' }]);
+      setMessages(prev => [...prev, { role: 'ai', content: 'I am in simulated mode. However, in order to perform detailed analysis, you first need to upload your financial data.' }]);
       return;
     }
     
@@ -60,7 +60,7 @@ function ChatBot({ isOpen, onClose, messages = [], setMessages, financialRecords
     const totalProf = financialRecords.reduce((s, r) => s + r.profit, 0);
     const profitMargin = totalRev > 0 ? ((totalProf / totalRev) * 100).toFixed(1) : 0;
     
-    let content = `Şu anda simüle moddayım (sunucu yanıt vermedi). Verilerinizi incelediğimde toplam ${totalRev.toLocaleString('tr-TR')} TL cironuz ve ortalama %${profitMargin} kâr marjınız bulunuyor. En çok dikkat çeken dönem ${worstMonth.date} olmuş. Sorunuza gelince: Giderleri kısmak veya kâr marjı yüksek odaklanmak bu istatistiklere göre iyi bir adım olabilir.`;
+    let content = `I am currently in simulated mode (server did not respond). When I analyze your data, you have a total revenue of $${totalRev.toLocaleString('en-US')} and an average profit margin of ${profitMargin}%. The most notable period was ${worstMonth.date}. As for your question: Cutting expenses or focusing on high profit margins could be a good step based on these statistics.`;
     
     setMessages(prev => [...prev, { role: 'ai', content }]);
   };
@@ -74,11 +74,11 @@ function ChatBot({ isOpen, onClose, messages = [], setMessages, financialRecords
       });
       if (res.ok) {
         setMessages([
-          { role: 'ai', content: 'Sohbet geçmişi temizlendi. Yeni bir analiz veya soruyla başlayabiliriz. Nasıl yardımcı olabilirim?' }
+          { role: 'ai', content: 'Chat history cleared. We can start with a new analysis or question. How can I help?' }
         ]);
       }
     } catch (err) {
-      console.error("Sohbet geçmişi temizlenemedi.", err);
+      console.error("Failed to clear chat history.", err);
     }
   };
 
@@ -101,17 +101,17 @@ function ChatBot({ isOpen, onClose, messages = [], setMessages, financialRecords
         },
         body: JSON.stringify({ 
           title: actionTitle, 
-          impact: 'Yapay Zeka Önerisi' 
+          impact: 'AI Recommendation' 
         })
       });
       if (res.ok) {
-        alert("Aksiyon başarıyla eklendi! 'Genel Bakış' sayfasındaki Takip Listesi'nden kontrol edebilirsiniz.");
+        alert("Action successfully added! You can check it from the Tracking List on the 'Overview' page.");
       } else {
-        alert("Aksiyon eklenirken bir hata oluştu.");
+        alert("An error occurred while adding the action.");
       }
     } catch (err) {
       console.error(err);
-      alert("Sunucu bağlantı hatası.");
+      alert("Server connection error.");
     }
   };
 
@@ -123,31 +123,31 @@ function ChatBot({ isOpen, onClose, messages = [], setMessages, financialRecords
   const getPrompts = () => {
     if (!financialRecords || financialRecords.length === 0) {
       return [
-        "Bu ay en büyük riskim ne?",
-        "En iyi ürünüm hangisi?",
-        "Maliyetleri nasıl düşürebilirim?"
+        "What is my biggest risk this month?",
+        "Which is my best product?",
+        "How can I reduce costs?"
       ];
     }
     const worstMonth = financialRecords.reduce((min, r) => r.profit < min.profit ? r : min, financialRecords[0]);
     const prompts = [];
     if (worstMonth.profit < 0) {
-       prompts.push(`${worstMonth.date}'daki ${Math.abs(worstMonth.profit).toLocaleString('tr-TR')} TL zararı nasıl düzeltirim?`);
+       prompts.push(`How do I fix the $${Math.abs(worstMonth.profit).toLocaleString('en-US')} loss in ${worstMonth.date}?`);
     } else {
-       prompts.push(`${worstMonth.date} ayındaki kâr performansımı nasıl artırabilirim?`);
+       prompts.push(`How can I increase my profit performance in ${worstMonth.date}?`);
     }
     
     if (financialRecords.length > 1) {
        const last = financialRecords[financialRecords.length - 1];
        const prev = financialRecords[financialRecords.length - 2];
        if (last.expenses > prev.expenses) {
-          prompts.push("Giderlerimdeki ani artışı nasıl kontrol altına alabilirim?");
+          prompts.push("How can I get the sudden increase in my expenses under control?");
        } else {
-          prompts.push("Kârlılığımı daha da yukarı taşımak için tavsiyelerin neler?");
+          prompts.push("What are your recommendations to push my profitability even higher?");
        }
     } else {
-       prompts.push("Maliyetleri nasıl düşürebilirim?");
+       prompts.push("How can I reduce costs?");
     }
-    prompts.push("Önümüzdeki ay için kâr/zarar tahmini yapabilir misin?");
+    prompts.push("Can you make a profit/loss forecast for next month?");
     return prompts;
   };
   
@@ -160,10 +160,9 @@ function ChatBot({ isOpen, onClose, messages = [], setMessages, financialRecords
         <div className="chat-panel-header">
           <div className="chat-panel-title">
             <Sparkles size={18} style={{ color: 'var(--color-primary)' }} />
-            <span>InsightAI Danışmanınız</span>
+            <span>InsightAI Advisor</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            {token && (
               <button 
                 onClick={clearChatHistory} 
                 style={{ 
@@ -180,9 +179,8 @@ function ChatBot({ isOpen, onClose, messages = [], setMessages, financialRecords
                 onMouseOver={(e) => { e.target.style.backgroundColor = 'var(--bg-main)'; e.target.style.color = 'var(--color-primary)'; }}
                 onMouseOut={(e) => { e.target.style.backgroundColor = 'transparent'; e.target.style.color = 'var(--text-secondary)'; }}
               >
-                Yeni Sohbet
+                New Chat
               </button>
-            )}
             <button className="close-chat-btn" onClick={onClose} style={{ display: 'flex', alignItems: 'center' }}>
               <X size={20} />
             </button>
@@ -192,7 +190,7 @@ function ChatBot({ isOpen, onClose, messages = [], setMessages, financialRecords
         <div className="chat-messages-area" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {messages.length <= 1 && (
             <div style={{ margin: '1rem 0', padding: '1rem', backgroundColor: 'var(--bg-main)', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
-              Henüz finansal veriniz yoksa veya desteğe ihtiyacınız varsa format konusunda yardımcı olabilirim!
+              If you don't have financial data yet or need support, I can help you with the format!
             </div>
           )}
           {messages.map((msg, index) => (
@@ -225,14 +223,14 @@ function ChatBot({ isOpen, onClose, messages = [], setMessages, financialRecords
                   onMouseOver={(e) => { e.target.style.backgroundColor = 'var(--color-primary-light)' }}
                   onMouseOut={(e) => { e.target.style.backgroundColor = 'transparent' }}
                 >
-                  <Plus size={12} /> Aksiyona Ekle
+                  <Plus size={12} /> Add to Actions
                 </button>
               )}
             </div>
           ))}
           {loading && (
             <div className="chat-bubble ai" style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', alignSelf: 'flex-start' }}>
-              <span className="animate-pulse">Düşünüyor...</span>
+              <span className="animate-pulse">Thinking...</span>
             </div>
           )}
           <div ref={chatEndRef} />
@@ -258,7 +256,7 @@ function ChatBot({ isOpen, onClose, messages = [], setMessages, financialRecords
             <input 
               type="text" 
               className="chat-text-input"
-              placeholder="Veriler hakkında bir soru sorun (Örn: Kârı nasıl artırabilirim?)"
+              placeholder="Ask about revenue, costs, anomalies, or predictions..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
               disabled={loading}

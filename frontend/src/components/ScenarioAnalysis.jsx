@@ -92,7 +92,7 @@ function ScenarioAnalysis({ financialRecords, topProducts }) {
         apiSuccess = true;
       }
     } catch (err) {
-      console.warn("Scenario API çalışmadı, front-end simülasyonu kullanılıyor.", err);
+      console.warn("Scenario API did not run, using front-end simulation.", err);
     }
 
     if (!apiSuccess) {
@@ -147,23 +147,23 @@ function ScenarioAnalysis({ financialRecords, topProducts }) {
     <div className="scenario-analysis" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
       <form onSubmit={handleRunAnalysis} className="scenario-form" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end', backgroundColor: 'var(--bg-main)', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
         <div style={{ flex: '1 1 200px', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-          <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Senaryo Türü</label>
+          <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Scenario Type</label>
           <select 
             value={scenarioType} 
             onChange={e => { setScenarioType(e.target.value); setResult(null); }}
             className="form-input"
             style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)', color: 'var(--text-main)' }}
           >
-            <option value="expense_reduction">Maliyet Azaltma (Gider Kısıntısı)</option>
-            <option value="revenue_increase">Satış Hacmi Artışı (Yeni Müşteri vb.)</option>
-            <option value="price_change">Fiyat Optimizasyonu (Zam/İndirim)</option>
-            <option value="product_removal">Düşük Performanslı Ürünü Kaldırma</option>
+            <option value="expense_reduction">Cost Reduction (Expense Cut)</option>
+            <option value="revenue_increase">Sales Volume Increase (New Customers etc.)</option>
+            <option value="price_change">Price Optimization (Increase/Discount)</option>
+            <option value="product_removal">Remove Low-Performing Product</option>
           </select>
         </div>
 
         {scenarioType !== 'product_removal' ? (
           <div style={{ flex: '1 1 150px', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-            <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Değişim Oranı (%)</label>
+            <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Change Rate (%)</label>
             <input 
               type="number" 
               min="-100" 
@@ -177,7 +177,7 @@ function ScenarioAnalysis({ financialRecords, topProducts }) {
           </div>
         ) : (
           <div style={{ flex: '1 1 150px', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-            <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Kaldırılacak Ürün</label>
+            <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Product to Remove</label>
             <select 
               value={selectedProduct} 
               onChange={e => { setSelectedProduct(e.target.value); setResult(null); }}
@@ -185,7 +185,7 @@ function ScenarioAnalysis({ financialRecords, topProducts }) {
               style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)', color: 'var(--text-main)' }}
               required
             >
-              <option value="">-- Ürün Seçin --</option>
+              <option value="">-- Select Product --</option>
               {topProducts?.map((p, idx) => (
                 <option key={idx} value={p.name}>{p.name}</option>
               ))}
@@ -194,28 +194,28 @@ function ScenarioAnalysis({ financialRecords, topProducts }) {
         )}
 
         <button type="submit" className="btn btn-primary" disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', height: '38px', padding: '0 1.25rem' }}>
-          <Play size={16} /> {loading ? 'Analiz Ediliyor...' : 'Senaryoyu Çalıştır'}
+          <Play size={16} /> {loading ? 'Analyzing...' : 'Run Scenario'}
         </button>
       </form>
 
       {result && (
         <div className="scenario-result" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)' }}>Senaryo Projeksiyon Sonuçları</h3>
+          <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)' }}>Scenario Projection Results</h3>
           
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
             <div className="scenario-card current" style={{ backgroundColor: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '1rem' }}>
-              <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.85rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mevcut Durum (Aylık)</h4>
+              <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.85rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Current Status (Monthly)</h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                  <span>Gelir:</span>
+                  <span>Revenue:</span>
                   <span style={{ fontWeight: 600 }}>{formatCurrency(result.current.revenue)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                  <span>Gider:</span>
+                  <span>Expense:</span>
                   <span style={{ fontWeight: 600 }}>{formatCurrency(result.current.expenses)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem', borderTop: '1px solid var(--border-color)', paddingTop: '0.5rem', marginTop: '0.25rem' }}>
-                  <span style={{ fontWeight: 600 }}>Net Kâr:</span>
+                  <span style={{ fontWeight: 600 }}>Net Profit:</span>
                   <span style={{ fontWeight: 700, color: result.current.profit >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
                     {formatCurrency(result.current.profit)}
                   </span>
@@ -224,18 +224,18 @@ function ScenarioAnalysis({ financialRecords, topProducts }) {
             </div>
 
             <div className="scenario-card projected" style={{ backgroundColor: 'var(--bg-main)', border: '1px dashed var(--color-primary)', borderRadius: '8px', padding: '1rem' }}>
-              <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.85rem', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tahmini Projeksiyon</h4>
+              <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.85rem', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Estimated Projection</h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                  <span>Gelir:</span>
+                  <span>Revenue:</span>
                   <span style={{ fontWeight: 600 }}>{formatCurrency(result.projected.revenue)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                  <span>Gider:</span>
+                  <span>Expense:</span>
                   <span style={{ fontWeight: 600 }}>{formatCurrency(result.projected.expenses)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem', borderTop: '1px dashed var(--color-primary)', paddingTop: '0.5rem', marginTop: '0.25rem' }}>
-                  <span style={{ fontWeight: 600 }}>Net Kâr:</span>
+                  <span style={{ fontWeight: 600 }}>Net Profit:</span>
                   <span style={{ fontWeight: 700, color: result.projected.profit >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
                     {formatCurrency(result.projected.profit)}
                   </span>
@@ -255,14 +255,14 @@ function ScenarioAnalysis({ financialRecords, topProducts }) {
               textAlign: 'center'
             }}>
               <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem', color: result.impact.profit_change >= 0 ? 'var(--color-success)' : 'var(--color-danger)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
-                Kâr Üzerindeki Etki
+                Impact on Profit
               </h4>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '1.4rem', fontWeight: 800, color: result.impact.profit_change >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
                 {result.impact.profit_change >= 0 ? <TrendingUp size={24} /> : <TrendingDown size={24} />}
                 <span>{formatCurrency(result.impact.profit_change)}</span>
               </div>
               <div className="scenario-impact" style={{ fontSize: '0.85rem', fontWeight: 600, color: result.impact.profit_change >= 0 ? 'var(--color-success)' : 'var(--color-danger)', marginTop: '0.25rem' }}>
-                {result.impact.profit_change >= 0 ? '+' : ''}{result.impact.profit_change_percent.toFixed(1)}% Değişim
+                {result.impact.profit_change >= 0 ? '+' : ''}{result.impact.profit_change_percent.toFixed(1)}% Change
               </div>
             </div>
           </div>
@@ -278,7 +278,7 @@ function ScenarioAnalysis({ financialRecords, topProducts }) {
               fontSize: '0.9rem', 
               lineHeight: '1.4' 
             }}>
-              <strong>InsightAI Analiz Yorumu:</strong> {result.ai_commentary}
+              <strong>InsightAI Analysis Commentary:</strong> {result.ai_commentary}
             </div>
           )}
         </div>

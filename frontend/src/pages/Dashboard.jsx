@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useOutletContext, useNavigate, Link } from 'react-router-dom';
+import { useDeferredRender } from '../hooks/useDeferredRender';
 import { 
   TrendingUp, 
   ArrowUpRight, 
@@ -18,8 +20,12 @@ import {
   ListTodo,
   BarChart3,
   FileSpreadsheet,
+  Calendar,
+  MessageSquare,
+  PlayCircle,
   RefreshCw
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { 
   ResponsiveContainer, 
   AreaChart, 
@@ -30,16 +36,25 @@ import {
   Tooltip,
   LineChart,
   Line,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
   RadarChart,
   PolarGrid,
   PolarAngleAxis,
   Radar
 } from 'recharts';
-import ExpenseBreakdown from './ExpenseBreakdown';
-import ProductMatrix from './ProductMatrix';
-import ActionTracker from './ActionTracker';
-import OriginalCashFlowGauge from './CashFlowGauge';
-import OriginalHealthScore from './HealthScore';
+
+import ExpenseBreakdown from '../components/ExpenseBreakdown';
+import ProductMatrix from '../components/ProductMatrix';
+import ActionTracker from '../components/ActionTracker';
+import OriginalCashFlowGauge from '../components/CashFlowGauge';
+import OriginalHealthScore from '../components/HealthScore';
+import ScenarioAnalysis from '../components/ScenarioAnalysis';
+
+import '../App.css';
 
 const formatCurrency = (value) => `$${Number(value || 0).toLocaleString('en-US')}`;
 
@@ -194,20 +209,22 @@ const HealthScore = ({ financialRecords, topProducts, healthData }) => {
   );
 };
 
-function Dashboard({
-  businessName,
-  businessType,
-  financialRecords,
-  topProducts,
-  aiInsights,
-  setChatOpen,
-  token,
-  apiBase,
-  setActiveTab,
-  triggerAnalysis
-}) {
+function Dashboard() {
+  const {
+    businessName,
+    businessType,
+    financialRecords,
+    topProducts,
+    aiInsights,
+    setChatOpen,
+    token,
+    apiBase,
+    triggerAnalysis
+  } = useOutletContext();
+  const navigate = useNavigate();
+  const setActiveTab = (tab) => navigate(`/app/${tab}`);
+  const isChartsReady = useDeferredRender(40);
   const hasData = financialRecords && financialRecords.length > 0;
-  
   const [healthData, setHealthData] = useState(null);
   const [actionRefreshKey, setActionRefreshKey] = useState(0);
 
@@ -461,9 +478,9 @@ function Dashboard({
                     <button 
                       className="btn" 
                       style={{ 
-                        borderColor: act.type === 'warning' ? '#FCA5A5' : act.type === 'success' ? '#A7F3D0' : '#93C5FD', 
-                        color: act.type === 'warning' ? '#991B1B' : act.type === 'success' ? '#065F46' : '#1D4ED8', 
-                        background: act.type === 'warning' ? '#FEF2F2' : act.type === 'success' ? '#ECFDF5' : '#EFF6FF', 
+                        borderColor: act.type === 'warning' ? 'var(--color-danger-light)' : act.type === 'success' ? 'var(--color-success-light)' : 'var(--color-primary-light)', 
+                        color: act.type === 'warning' ? 'var(--color-danger)' : act.type === 'success' ? 'var(--color-success)' : 'var(--color-primary)', 
+                        background: act.type === 'warning' ? 'var(--color-danger-light)' : act.type === 'success' ? 'var(--color-success-light)' : 'var(--color-primary-light)', 
                         fontWeight: 600, 
                         fontSize: '0.8rem', 
                         alignSelf: 'flex-start' 
@@ -492,7 +509,7 @@ function Dashboard({
         {sectorData.kpis.map((kpi, index) => {
           const Icon = kpi.icon;
           return (
-            <div key={index} className="card kpi-card">
+            <div key={index} className="card glass-effect kpi-card">
               <div className="kpi-header">
                 <span>{kpi.label}</span>
                 <div className={`kpi-icon ${kpi.iconClass}`}><Icon size={16} /></div>
@@ -517,7 +534,7 @@ function Dashboard({
       </div>
 
       {/* 4. Main Chart + Right Panel */}
-      <div className="card chart-area" style={{ gridColumn: 'span 8', minHeight: '340px' }}>
+      <div className="card glass-effect chart-area" style={{ gridColumn: 'span 8', minHeight: '340px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.25rem', alignItems: 'center' }}>
           <div>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Revenue Forecasting & Budget Execution</h3>
@@ -533,8 +550,9 @@ function Dashboard({
           </div>
         </div>
         
-        <div style={{ flex: 1, minHeight: 200 }}>
-          <ResponsiveContainer width="100%" height="100%">
+        <div style={{ flex: 1, minHeight: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {isChartsReady ? (
+            <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={predictiveData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorRevL" x1="0" y1="0" x2="0" y2="1">
@@ -570,31 +588,34 @@ function Dashboard({
               />
             </AreaChart>
           </ResponsiveContainer>
+          ) : (
+            <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Loading chart...</div>
+          )}
         </div>
       </div>
       <div style={{ gridColumn: 'span 4', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <div className="card" style={{ flex: 1 }}>
+        <div className="card glass-effect" style={{ flex: 1 }}>
           <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem' }}>Cash Flow Health</h3>
           <CashFlowGauge financialRecords={financialRecords} healthData={healthData} />
         </div>
-        <div className="card" style={{ flex: 1 }}>
+        <div className="card glass-effect" style={{ flex: 1 }}>
           <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem' }}>Business Health Score</h3>
           <HealthScore financialRecords={financialRecords} topProducts={topProducts} healthData={healthData} />
         </div>
       </div>
 
       {/* 5. Expense Breakdown + Product Matrix */}
-      <div className="card" style={{ gridColumn: 'span 6' }}>
+      <div className="card glass-effect" style={{ gridColumn: 'span 6' }}>
         <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1rem' }}>Expense Breakdown Analysis</h3>
         <ExpenseBreakdown financialRecords={financialRecords} />
       </div>
-      <div className="card" style={{ gridColumn: 'span 6' }}>
+      <div className="card glass-effect" style={{ gridColumn: 'span 6' }}>
         <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1rem' }}>Product/Service Performance Matrix</h3>
         <ProductMatrix topProducts={topProducts} />
       </div>
 
-      {/* 6. Aksiyon Takip */}
-      <div className="card" style={{ gridColumn: 'span 12' }}>
+      {/* 6. Action Tracker */}
+      <div className="card glass-effect" style={{ gridColumn: 'span 12' }}>
         <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <ListTodo size={18} /> Action Tracking Dashboard
         </h3>

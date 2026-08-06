@@ -1,8 +1,16 @@
 import React, { useRef, useState } from 'react';
+import { useOutletContext, useNavigate } from 'react-router-dom';
 import { UploadCloud, CheckCircle, AlertTriangle, Sparkles } from 'lucide-react';
-import ManualDataEntry from './ManualDataEntry';
+import { motion } from 'framer-motion';
+import ManualDataEntry from '../components/ManualDataEntry';
 
-function UploadCenter({ token, apiBase, onUploadSuccess }) {
+function UploadCenter() {
+  const { token, apiBase, fetchData } = useOutletContext();
+  const navigate = useNavigate();
+  const onUploadSuccess = async () => {
+    await fetchData();
+    navigate('/app/dashboard');
+  };
   const [activeUploadTab, setActiveUploadTab] = useState('file'); // 'file' or 'manual'
   const fileInputRef = useRef(null);
   const [uploadLoading, setUploadLoading] = useState(false);
