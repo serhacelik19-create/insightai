@@ -84,7 +84,7 @@ PYTHONPATH=. python main.py
 
 ### Seed Demo Data
 ```bash
-PYTHONPATH=. python seed_db.py
+PYTHONPATH=. python backend/seed_db.py
 ```
 - **Demo login:** `demo@insightai.com` / `demo123`
 
@@ -103,7 +103,7 @@ Open [http://localhost:5173](http://localhost:5173)
 Run integration tests covering JWT cookie handling, rate limiting, and multi-tenant data isolation:
 
 ```bash
-PYTHONPATH=. backend/venv/bin/python backend/test_api.py
+PYTHONPATH=. backend/venv/bin/python -m unittest tests/test_api.py
 ```
 
 ---
