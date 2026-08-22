@@ -1,4 +1,4 @@
-import sqlite3
+from sqlalchemy.exc import IntegrityError
 import os
 from backend.database import get_db_connection, init_db
 from backend.security import hash_password
@@ -19,15 +19,16 @@ def seed():
     
     print(f"Creating demo user: {email}")
     try:
-        cursor.execute(
+        res = conn.execute(
             "INSERT INTO users (email, password_hash, business_name, business_type) VALUES (?, ?, ?, ?)",
             (email, hashed, business_name, business_type)
         )
-        user_id = cursor.lastrowid
-    except sqlite3.IntegrityError:
+        user_id = res.lastrowid
+    except Exception:
+        conn.rollback()
         # User already exists, retrieve id
-        row = cursor.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
-        user_id = row[0]
+        row = conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+        user_id = row["id"] if row else 1
         print(f"User {email} already exists (ID: {user_id}). Cleaning previous demo data...")
         # Clean previous data for this user to avoid duplication
         cursor.execute("DELETE FROM financial_records WHERE user_id = ?", (user_id,))

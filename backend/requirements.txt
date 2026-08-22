@@ -9,3 +9,5 @@ python-multipart
 pyjwt
 bcrypt
 email-validator
+sqlalchemy
+psycopg2-binary

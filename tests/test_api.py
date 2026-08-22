@@ -14,20 +14,13 @@ from backend.database import init_db, get_db_connection
 class TestAPI(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        # Override database to a test database
-        from backend.config import settings
-        cls.orig_db_path = settings.DB_PATH
-        settings.DB_PATH = os.path.join(os.path.dirname(__file__), "test_database.db")
+        # Initialize database for testing
         init_db()
         cls.client = TestClient(app)
 
     @classmethod
     def tearDownClass(cls):
-        from backend.config import settings
-        # Remove test database
-        if os.path.exists(settings.DB_PATH):
-            os.remove(settings.DB_PATH)
-        settings.DB_PATH = cls.orig_db_path
+        pass
 
     def setUp(self):
         # Clean tables
@@ -117,11 +110,12 @@ class TestAPI(unittest.TestCase):
             "business_type": "restaurant"
         })
 
+        client_a = TestClient(app)
+        client_b = TestClient(app)
+
         # Login User A and User B
-        res_a = self.client.post("/api/auth/login", json={"email": "usera@sirket.com", "password": "password"})
-        cookie_a = {"access_token": res_a.cookies.get("access_token")}
-        res_b = self.client.post("/api/auth/login", json={"email": "userb@sirket.com", "password": "password"})
-        cookie_b = {"access_token": res_b.cookies.get("access_token")}
+        res_a = client_a.post("/api/auth/login", json={"email": "usera@sirket.com", "password": "password"})
+        res_b = client_b.post("/api/auth/login", json={"email": "userb@sirket.com", "password": "password"})
 
         # Populate records manually for User A
         rec_payload = {
@@ -134,26 +128,29 @@ class TestAPI(unittest.TestCase):
             "material_expense": 2000.0,
             "other_expense": 500.0
         }
-        self.client.post("/api/data/record", json=rec_payload, cookies=cookie_a)
+        client_a.post("/api/data/record", json=rec_payload)
         
-        # We also need to set a dummy API key so the endpoint tries to call call_gemini instead of raising ValueError
+        # Temporarily mock API keys for testing
         from backend.config import settings
         orig_gemini_key = settings.GEMINI_API_KEY
+        orig_openrouter_key = settings.OPENROUTER_API_KEY
         settings.GEMINI_API_KEY = "dummy_key_for_testing"
+        settings.OPENROUTER_API_KEY = None
         
         try:
-            res_a = self.client.post("/api/analyze", cookies=cookie_a)
+            res_a = client_a.post("/api/analyze")
             self.assertEqual(res_a.status_code, 200)
             self.assertIn("summary", res_a.json())
         finally:
             settings.GEMINI_API_KEY = orig_gemini_key
+            settings.OPENROUTER_API_KEY = orig_openrouter_key
 
         # Verify User A has records now
-        res_data_a = self.client.get("/api/data", cookies=cookie_a)
+        res_data_a = client_a.get("/api/data")
         self.assertTrue(len(res_data_a.json()["records"]) > 0)
 
         # Verify User B has NO records (isolation check)
-        res_data_b = self.client.get("/api/data", cookies=cookie_b)
+        res_data_b = client_b.get("/api/data")
         self.assertEqual(len(res_data_b.json()["records"]), 0)
 
     def test_me_and_logout(self):
