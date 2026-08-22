@@ -4,7 +4,8 @@
   <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" />
   <img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React" />
   <img src="https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite" />
-  <img src="https://img.shields.io/badge/SQLite-07405E?style=for-the-badge&logo=sqlite&logoColor=white" alt="SQLite" />
+  <img src="https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL" />
+  <img src="https://img.shields.io/badge/SQLAlchemy-D71000?style=for-the-badge&logo=sqlalchemy&logoColor=white" alt="SQLAlchemy" />
   <img src="https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=JSON%20web%20tokens&logoColor=white" alt="JWT" />
   <img src="https://img.shields.io/badge/OpenRouter-8A2BE2?style=for-the-badge&logo=google-gemini&logoColor=white" alt="OpenRouter" />
 </p>
@@ -34,7 +35,7 @@ Built with **FastAPI** (Python) and **React** (Vite), following strict separatio
 | Session hijacking prevention | JWT tokens stored in `HttpOnly`, `SameSite=Lax`, `Secure` cookies — inaccessible to JavaScript |
 | Data isolation | All queries are parameterized and filtered by authenticated user — no cross-tenant data access |
 | Brute-force protection | IP-based rate limiting on authentication endpoints |
-| SQL injection defense | Parameterized SQLite queries in isolated repository layers — no string concatenation |
+| SQL injection defense | Parameterized PostgreSQL queries via SQLAlchemy Engine — no string concatenation |
 
 ---
 
@@ -43,7 +44,7 @@ Built with **FastAPI** (Python) and **React** (Vite), following strict separatio
 ```
 ├── backend/
 │   ├── config.py             # Centralized Pydantic settings
-│   ├── database.py           # Schema & connection factory
+│   ├── database.py           # Schema & PostgreSQL connection factory
 │   ├── security.py           # JWT, hashing, auth dependencies
 │   ├── schemas/              # Pydantic request/response models
 │   ├── repositories/         # Database query layer (isolated SQL)
@@ -71,9 +72,8 @@ pip install -r requirements.txt
 
 Create `backend/.env`:
 ```env
-SECRET_KEY=generate_your_random_secret_key
-ALGORITHM=HS256
-DB_PATH=database.db
+JWT_SECRET=generate_your_random_secret_key
+DATABASE_URL=postgresql://localhost/insightai_db
 OPENROUTER_API_KEY=your_openrouter_api_key
 OPENROUTER_MODEL=google/gemma-4-26b-a4b-it
 ```
